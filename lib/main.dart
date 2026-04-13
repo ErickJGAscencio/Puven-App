@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:localix/data/database.dart';
 import 'app/app.dart';
 
 void main() {
-  runApp(const MyApp());
+  final db = AppDatabase();
+  runApp(MyApp(database: db));
 }
