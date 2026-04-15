@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:localix/data/database.dart';
+import 'package:localix/features/app_page/presentation/app_page.dart';
+import 'package:localix/widgets/pill.dart';
 
 class MyProductsPage extends StatefulWidget {
   final AppDatabase database;
@@ -39,14 +41,25 @@ class _MyProductsPage extends State<MyProductsPage> {
       length: 2,
       child: Column(
         children: [
-          const TabBar(
+          Divider(
+            color: Colors.grey.shade300,
+            height: 1,
+          ),
+          Container(
+            color: Colors.white,
+            child: TabBar(
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: PuventColors.primaryGreen.color,
+            unselectedLabelColor: Colors.grey,
+            labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             tabs: [
-              Tab(text: "Productos"),
-              Tab(text: "Tamaños"),
+              Tab(icon: Icon(Icons.inventory)),
+              Tab(icon: Icon(Icons.straighten)),
             ],
           ),
+          ),
           Expanded(
-            child: TabBarView(children: [_productsView(), _SizesView()]),
+            child: TabBarView(children: [_productsView(), _sizesView()]),
           ),
         ],
       ),
@@ -65,17 +78,54 @@ class _MyProductsPage extends State<MyProductsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Mis Productos",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Pill(
+                      color: PuventColors.primaryGreen.color,
+                      label: "Inventario",
                     ),
-                    ElevatedButton.icon(
-                      onPressed: _openProductModal,
-                      icon: const Icon(Icons.add),
-                      label: const Text("Nuevo"),
+                    // ElevatedButton.icon(
+                    //   onPressed: _openProductModal,
+                    //   icon: const Icon(Icons.add),
+                    //   label: const Text("Nuevo"),
+                    // ),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(50),
+                      onTap: () {
+                        _openProductModal();
+                      },
+                      splashColor: Colors.white24,
+                      highlightColor: Colors.white10,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: PuventColors.primaryGreen.color,
+                          borderRadius: BorderRadius.circular(50),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: const Offset(2, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.add, color: Colors.white, size: 20),
+                            SizedBox(width: 6),
+                            Text(
+                              "Nuevo",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -89,7 +139,7 @@ class _MyProductsPage extends State<MyProductsPage> {
     );
   }
 
-  Widget _SizesView() {
+  Widget _sizesView() {
     return Padding(
       padding: EdgeInsets.all(12),
       child: Column(
@@ -101,17 +151,55 @@ class _MyProductsPage extends State<MyProductsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Tamaños Disponibles",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Pill(
+                      color: PuventColors.primaryGreen.color,
+                      label: "Tamaños",
                     ),
-                    ElevatedButton.icon(
-                      onPressed: _openSizeModal,
-                      icon: const Icon(Icons.add),
-                      label: const Text("Nuevo"),
+
+                    // ElevatedButton.icon(
+                    //   onPressed: _openSizeModal,
+                    //   icon: const Icon(Icons.add),
+                    //   label: const Text("Nuevo"),
+                    // ),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(50),
+                      onTap: () {
+                        _openSizeModal();
+                      },
+                      splashColor: Colors.white24,
+                      highlightColor: Colors.white10,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: PuventColors.primaryGreen.color,
+                          borderRadius: BorderRadius.circular(50),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: const Offset(2, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          children: const [
+                            Icon(Icons.add, color: Colors.white, size: 20),
+                            SizedBox(width: 6),
+                            Text(
+                              "Nuevo",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -131,9 +219,6 @@ class _MyProductsPage extends State<MyProductsPage> {
       stream: database.watchProducts(),
       builder: (context, snapshot) {
         final products = snapshot.data ?? [];
-
-        print(products);
-
         if (products.isEmpty) {
           return const Center(child: Text("No hay productos"));
         }
@@ -167,7 +252,7 @@ class _MyProductsPage extends State<MyProductsPage> {
   // ================= TILE =================
   Widget _productTile(Product product) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
@@ -180,7 +265,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                   product.name,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -218,9 +303,10 @@ class _MyProductsPage extends State<MyProductsPage> {
 
   Widget _productSizeTile(ProductSize sizes) {
     return Card(
+      color: Colors.white,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -231,7 +317,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                   sizes.name,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -246,8 +332,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () async {
-                    await database.deleteVariantsByProduct(sizes.id);
-                    await database.deleteProduct(sizes.id);
+                    await database.deleteSize(sizes.id);
                   },
                 ),
               ],
@@ -259,9 +344,11 @@ class _MyProductsPage extends State<MyProductsPage> {
   }
 
   // ================= MODAL =================
-  void _openProductModal({Product? product}) {
+  void _openProductModal({Product? product}) async {
     final nameController = TextEditingController(text: product?.name ?? "");
+
     final pricePerKgController = TextEditingController();
+    final simplePriceController = TextEditingController();
     bool hasSizes = product?.hasSizes ?? false;
     bool isByGrams = product?.isByGrams ?? false;
     String simplePrice = "";
@@ -269,12 +356,30 @@ class _MyProductsPage extends State<MyProductsPage> {
     List<Map<String, dynamic>> variants = [
       {"size": "", "price": ""},
     ];
-    final sizesStream = database.watchSizes();
-    /*  final priceController = TextEditingController(
-      text: product?.price.toString() ?? "",
-    );
 
-    String size = product?.size ?? "Chico";*/
+    if (product != null && hasSizes) {
+      //CArgar vlas variantes
+      final existingVariants = await database.getVariantsByProduct(product.id);
+      variants = existingVariants
+          .map((v) => {"size": v.size, "price": v.price.toString()})
+          .toList();
+    } else if (product != null && isByGrams) {
+      //Precio por kilo
+      final existingVariants = await database.getVariantsByProduct(product.id);
+      if (existingVariants.isNotEmpty) {
+        pricePerKgController.text = existingVariants.first.pricePerKg
+            .toString();
+      }
+    } else if (product != null) {
+      // Precio fijo
+      final existingVariant = await database.getVariantsByProduct(product.id);
+      if (existingVariant.isNotEmpty) {
+        simplePrice = existingVariant.first.price.toString();
+        simplePriceController.text = existingVariant.first.price.toString();
+      }
+    }
+
+    final sizesStream = database.watchSizes();
 
     showModalBottomSheet(
       context: context,
@@ -321,8 +426,8 @@ class _MyProductsPage extends State<MyProductsPage> {
                             border: OutlineInputBorder(),
                           ),
                         ),
-
                         const SizedBox(height: 10),
+
                         // switches
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -363,9 +468,9 @@ class _MyProductsPage extends State<MyProductsPage> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 10),
 
+                        // Gramos
                         if (isByGrams)
                           RichText(
                             text: TextSpan(
@@ -388,6 +493,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                             ),
                           ),
 
+                        // Tamaños
                         if (hasSizes)
                           Column(
                             children: [
@@ -412,7 +518,9 @@ class _MyProductsPage extends State<MyProductsPage> {
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
-                                      child: TextField(
+                                      child: TextFormField(
+                                        initialValue: variants[i]["price"]
+                                            .toString(),
                                         keyboardType: TextInputType.number,
                                         decoration: const InputDecoration(
                                           labelText: "Precio",
@@ -448,8 +556,10 @@ class _MyProductsPage extends State<MyProductsPage> {
                         const SizedBox(height: 10),
                         // PRECIO SIMPLE
                         if (!hasSizes)
-                          TextField(
-                            controller: pricePerKgController,
+                          TextFormField(
+                            controller: isByGrams
+                                ? pricePerKgController
+                                : simplePriceController,
                             keyboardType: TextInputType.number,
                             decoration: InputDecoration(
                               labelText: isByGrams
@@ -486,7 +596,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                                       productId: drift.Value(productId),
                                       size: drift.Value(v["size"]),
                                       price: drift.Value(
-                                        double.tryParse(v["price"]) ?? 0,
+                                        double.tryParse(v['price']) ?? 0,
                                       ),
                                     ),
                                   );
@@ -496,7 +606,12 @@ class _MyProductsPage extends State<MyProductsPage> {
                                   ProductVariantsCompanion(
                                     productId: drift.Value(productId),
                                     size: const drift.Value("GRAMOS"),
-                                    pricePerKg: drift.Value(double.tryParse(pricePerKgController.text) ?? 0),
+                                    pricePerKg: drift.Value(
+                                      double.tryParse(
+                                            pricePerKgController.text,
+                                          ) ??
+                                          0,
+                                    ),
                                   ),
                                 );
                               } else {

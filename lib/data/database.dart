@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:localix/data/tables/order_items.dart';
+import 'package:localix/data/tables/orders.dart';
 import 'package:localix/data/tables/product_size.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -14,12 +16,18 @@ class DatabaseProvider {
   static final AppDatabase instance = AppDatabase();
 }
 
-@DriftDatabase(tables: [Products, ProductVariants, ProductSizes])
+@DriftDatabase(tables: [
+  Products,
+  ProductVariants,
+  ProductSizes,
+  Orders,
+  OrderItems
+  ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -28,16 +36,23 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      if (from == 7) {
+      if (from == 8) {
         // Definir que hacer al pasar de version X a Y
         //await m.addColumn(products, products.price);
-        print("ACTUAIZA");
-        await m.createTable(productVariants);
-        await customStatement('''
-        INSERT INTO product_variants (id, product_id, size, price, price_per_kg)
-        SELECT id, product_id, size, price, price_per_kg FROM product_variants_old;
-      ''');
-        // /////////
+        ////////////////////////////
+        
+          await m.createTable(orders);
+          await m.createTable(orderItems);
+
+        
+        ///////////////////////
+        //   print("ACTUAIZA");
+        //   await m.createTable(productVariants);
+        //   await customStatement('''
+        //   INSERT INTO product_variants (id, product_id, size, price, price_per_kg)
+        //   SELECT id, product_id, size, price, price_per_kg FROM product_variants_old;
+        // ''');
+        // //////////////////
         //         // 1. Añadir la columna en la nueva tabla
         //       await m.addColumn(productVariants, productVariants.pricePerKg);
 
@@ -49,6 +64,7 @@ class AppDatabase extends _$AppDatabase {
         //           WHERE products.id = product_variants.product_id
         //         )
         //       ''');
+        //////////////////////
       }
     },
     beforeOpen: (details) async {
@@ -71,8 +87,18 @@ class AppDatabase extends _$AppDatabase {
 
   Future updateProduct(Product product) => update(products).replace(product);
 
+  // CRUD operations for VAriants
   Future<int> insertVariant(ProductVariantsCompanion variant) =>
       into(productVariants).insert(variant);
+
+  Future<List<ProductVariant>> getAllVariants() =>
+      select(productVariants).get();
+
+  Future<List<ProductVariant>> getVariantsByProduct(int productId) {
+    return (select(
+      productVariants,
+    )..where((tbl) => tbl.productId.equals(productId))).get();
+  }
 
   Stream<List<ProductVariant>> watchVariants(int productId) {
     return (select(
@@ -83,6 +109,9 @@ class AppDatabase extends _$AppDatabase {
   Future deleteVariantsByProduct(int productId) => (delete(
     productVariants,
   )..where((tbl) => tbl.productId.equals(productId))).go();
+
+  Future updateVariant(ProductVariant variant) =>
+      update(productVariants).replace(variant);
 
   // CRUD operations for Sizes
   Future<int> insertSize(ProductSizesCompanion size) =>
@@ -96,6 +125,30 @@ class AppDatabase extends _$AppDatabase {
       (delete(productSizes)..where((tbl) => tbl.id.equals(id))).go();
 
   Future updateSize(ProductSize size) => update(productSizes).replace(size);
+
+  // CRUD operations for Orders
+  Future<int> insertOrder(OrdersCompanion order) => into(orders).insert(order);
+
+  Stream<List<Order>> watchOrders() => select(orders).watch();
+
+  Future<List<Order>> getAllOrders() => select(orders).get();
+
+  Future deleteOrder(int id) => (delete(orders)..where((tbl) => tbl.id.equals(id))).go();
+
+  Future updateOrder(Order order) => update(orders).replace(order);
+
+  // CRUD operations for Items Order
+
+  Future<int> insertOrderItem(OrderItemsCompanion orderItem) => into(orderItems).insert(orderItem);
+
+  Stream<List<OrderItem>> watchOrderItems() => select(orderItems).watch();
+
+  Future<List<OrderItem>> getAllOrderItems() => select(orderItems).get();
+
+  Future deleteOrderItem(int id) => (delete(orderItems)..where((tbl) => tbl.id.equals(id))).go();
+
+  Future updateOrderItem(OrderItem orderItem) => (update(orderItems).replace(orderItem));
+
 }
 
 //conexión SQLite

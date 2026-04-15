@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:localix/features/app_page/presentation/app_page.dart';
 
-class AppDrawer extends StatelessWidget{
+class AppDrawer extends StatelessWidget {
   final Function(int) onItemSelected;
   final int currentIndex;
 
@@ -11,37 +12,47 @@ class AppDrawer extends StatelessWidget{
   });
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Drawer(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(bottomRight: Radius.circular(40)),
+      ),
+      elevation: 5.0,
       child: Column(
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.blue
+          DrawerHeader(
+            decoration: BoxDecoration(color: PuventColors.primaryGreen.color),
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Text(
+                "Puven",
+                style: TextStyle(color: Colors.white, fontSize: 20),
+              ),
             ),
-            child: Align(alignment: Alignment.bottomLeft,child: Text("Puven", style: TextStyle(
-            color: Colors.white, fontSize: 20
-          ),),)),
-          _drawerItem(
-            icon: Icons.inventory,
-            text: "Punto de Venta",
-            index: 0,
           ),
+          _drawerItem(icon: Icons.login, text: "Acceder", index: 0),
           _drawerItem(
-            icon: Icons.inventory,
-            text: "Mis productos",
+            icon: Icons.point_of_sale,
+            text: "Punto de Venta",
             index: 1,
           ),
-
-          const Spacer(),
-
-          const Divider(),
-
+          _drawerItem(icon: Icons.inventory, text: "Mis productos", index: 2),
+          _drawerItem(icon: Icons.table_chart, text: "Estadísticas", index: 3),
           _drawerItem(
-            icon: Icons.logout,
-            text: "Cerrar sesión",
-            index: 2,
+            icon: Icons.history,
+            text: "Historial de Ventas",
+            index: 4,
           ),
+          _drawerItem(icon: Icons.group, text: "Colaboradores", index: 5),
+          _drawerItem(icon: Icons.settings, text: "Configuraciones", index: 6),
+          _drawerItem(
+            icon: Icons.workspace_premium,
+            text: "Mejorar Plan",
+            index: 7,
+          ),
+          const Spacer(),
+          const Divider(),
+          _drawerItem(icon: Icons.logout, text: "Cerrar sesión", index: 8),
         ],
       ),
     );
@@ -53,6 +64,7 @@ class AppDrawer extends StatelessWidget{
     required int index,
   }) {
     return ListTile(
+      selectedColor: PuventColors.primaryGreen.color,
       leading: Icon(icon),
       title: Text(text),
       selected: currentIndex == index,
