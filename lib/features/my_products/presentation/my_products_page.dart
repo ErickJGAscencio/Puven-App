@@ -41,22 +41,19 @@ class _MyProductsPage extends State<MyProductsPage> {
       length: 2,
       child: Column(
         children: [
-          Divider(
-            color: Colors.grey.shade300,
-            height: 1,
-          ),
+          Divider(color: Colors.grey.shade300, height: 1),
           Container(
             color: Colors.white,
             child: TabBar(
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelColor: PuventColors.primaryGreen.color,
-            unselectedLabelColor: Colors.grey,
-            labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            tabs: [
-              Tab(icon: Icon(Icons.inventory)),
-              Tab(icon: Icon(Icons.straighten)),
-            ],
-          ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: PuventColors.primaryGreen.color,
+              unselectedLabelColor: Colors.grey,
+              labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              tabs: [
+                Tab(icon: Icon(Icons.inventory)),
+                Tab(icon: Icon(Icons.straighten)),
+              ],
+            ),
           ),
           Expanded(
             child: TabBarView(children: [_productsView(), _sizesView()]),
@@ -436,6 +433,8 @@ class _MyProductsPage extends State<MyProductsPage> {
                             Expanded(
                               child: SwitchListTile(
                                 value: hasSizes,
+                                activeTrackColor:
+                                    PuventColors.primaryGreen.color,
                                 onChanged: isByGrams
                                     ? null
                                     : (value) {
@@ -453,6 +452,8 @@ class _MyProductsPage extends State<MyProductsPage> {
                             Expanded(
                               child: SwitchListTile(
                                 value: isByGrams,
+                                activeTrackColor:
+                                    PuventColors.primaryGreen.color,
                                 onChanged: hasSizes
                                     ? null
                                     : (value) {
@@ -495,64 +496,84 @@ class _MyProductsPage extends State<MyProductsPage> {
 
                         // Tamaños
                         if (hasSizes)
-                          Column(
-                            children: [
-                              ...variants.asMap().entries.map((entry) {
-                                int i = entry.key;
-                                return Row(
-                                  children: [
-                                    Expanded(
-                                      child: DropdownMenu<String>(
-                                        initialSelection: variants[i]["size"],
-                                        onSelected: (v) =>
-                                            variants[i]["size"] = v ?? "",
-                                        dropdownMenuEntries: sizes
-                                            .map(
-                                              (s) => DropdownMenuEntry(
-                                                value: s.name,
-                                                label: s.name,
-                                              ),
-                                            )
-                                            .toList(),
-                                      ),
+                          if (sizes.isEmpty)
+                            RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                                children: [
+                                  TextSpan(text: "No hay "),
+                                  TextSpan(
+                                    text: "Tamaños ",
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: TextFormField(
-                                        initialValue: variants[i]["price"]
-                                            .toString(),
-                                        keyboardType: TextInputType.number,
-                                        decoration: const InputDecoration(
-                                          labelText: "Precio",
-                                        ),
-                                        onChanged: (v) =>
-                                            variants[i]["price"] = v,
-                                      ),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete),
-                                      onPressed: () {
-                                        setModalState(() {
-                                          variants.removeAt(i);
-                                        });
-                                      },
-                                    ),
-                                  ],
-                                );
-                              }),
-
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  setModalState(() {
-                                    variants.add({"size": "", "price": ""});
-                                  });
-                                },
-                                icon: const Icon(Icons.add),
-                                label: const Text("Agregar tamaño"),
+                                  ),
+                                  TextSpan(text: "registrados."),
+                                ],
                               ),
-                            ],
-                          ),
+                            )
+                          else
+                            Column(
+                              children: [
+                                ...variants.asMap().entries.map((entry) {
+                                  int i = entry.key;
+                                  return Row(
+                                    children: [
+                                      Expanded(
+                                        child: DropdownMenu<String>(
+                                          initialSelection: variants[i]["size"],
+                                          onSelected: (v) =>
+                                              variants[i]["size"] = v ?? "",
+                                          dropdownMenuEntries: sizes
+                                              .map(
+                                                (s) => DropdownMenuEntry(
+                                                  value: s.name,
+                                                  label: s.name,
+                                                ),
+                                              )
+                                              .toList(),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: TextFormField(
+                                          initialValue: variants[i]["price"]
+                                              .toString(),
+                                          keyboardType: TextInputType.number,
+                                          decoration: const InputDecoration(
+                                            labelText: "Precio",
+                                          ),
+                                          onChanged: (v) =>
+                                              variants[i]["price"] = v,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () {
+                                          setModalState(() {
+                                            variants.removeAt(i);
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                }),
 
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    setModalState(() {
+                                      variants.add({"size": "", "price": ""});
+                                    });
+                                  },
+                                  icon: const Icon(Icons.add),
+                                  label: const Text("Agregar tamaño"),
+                                ),
+                              ],
+                            ),
                         const SizedBox(height: 10),
                         // PRECIO SIMPLE
                         if (!hasSizes)
@@ -680,8 +701,24 @@ class _MyProductsPage extends State<MyProductsPage> {
                     ),
                     textAlign: TextAlign.start,
                   ),
-
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 15),
+                  RichText(
+                    text: TextSpan(
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                      children: [
+                        TextSpan(text: "Se recomienda que el  "),
+                        TextSpan(
+                          text: "Nombre ",
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextSpan(text: "sea en singular."),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
                   // Nombre
                   TextField(
                     controller: nameController,

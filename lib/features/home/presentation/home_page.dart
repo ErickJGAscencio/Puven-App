@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:localix/data/database.dart';
 import 'package:localix/features/app_page/presentation/app_page.dart';
@@ -31,13 +30,11 @@ class ProductFormModel {
 }
 
 class OrderItem {
-  final int id;
   final String name;
   final int quantity;
   final double unitPrice;
 
   OrderItem({
-    required this.id,
     required this.name,
     required this.quantity,
     required this.unitPrice,
@@ -311,26 +308,27 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                       return;
-                    }else if(total == 0.0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    }else if(total == 0.0){
+                     ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            "Para continuar el total general debe ser mayor a \$0.0",
+                            "Para continuar el total general no puede ser \$0.0",
                           ),
                         ),
                       );
+                      return;
                     }else{
                       _continueSell();
                     }
-                  } else {
+                  }else{
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Para continuar debe haber un producto en la lista.",
+                        const SnackBar(
+                          content: Text(
+                            "Para continuar debe haber un producto en la lista.",
+                          ),
                         ),
-                      ),
-                    );
-                    return;
+                      );
+                      return;
                   }
                 },
                 borderRadius: BorderRadius.circular(50),
@@ -730,17 +728,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _continueSell() {
-    orderItems.clear();
-    
-    orderItems.addAll(
-      productForms.map((p) => OrderItem(
-        id: int.parse(p.id),
-        name: p.product!.name,
-        quantity: p.quantity,
-        unitPrice: p.unityPrice
-      ))
-    );
-    
     showDialog(
       context: context,
       builder: (context) {
@@ -776,23 +763,7 @@ class _HomePageState extends State<HomePage> {
               child: const Text('Cancelar'),
             ),
             TextButton(
-              onPressed: ()async {
-                await database.insertOrder(
-                  OrdersCompanion(
-                    createdAt: drift.Value(DateTime.now().toLocal()),
-                    notes: drift.Value(""),
-                    totalAmount: drift.Value(total)
-                  )
-                );
-                orderItems.map((o) async => {
-                    await database.insertOrderItem(
-                      OrderItemsCompanion(
-                        productId: drift.Value(o.id),
-                        quantity: drift.Value(o.quantity),
-                      )
-                    )
-                  }
-                );
+              onPressed: () {
                 Navigator.pop(context);
               },
               child: const Text('Aceptar'),
