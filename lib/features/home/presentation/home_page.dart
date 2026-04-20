@@ -1,5 +1,7 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:localix/data/database.dart';
+import 'package:localix/data/tables/orders.dart';
 import 'package:localix/features/app_page/presentation/app_page.dart';
 import 'package:localix/widgets/pill.dart';
 
@@ -7,7 +9,7 @@ import 'package:localix/widgets/pill.dart';
 class ProductFormModel {
   final String id = UniqueKey().toString();
   Product? product;
-  String? size;
+  int? size;
   double grams;
   bool byGrams;
   double priceByKg;
@@ -33,11 +35,13 @@ class OrderItem {
   final String name;
   final int quantity;
   final double unitPrice;
+  final int variantId;
 
   OrderItem({
     required this.name,
     required this.quantity,
     required this.unitPrice,
+    required this.variantId,
   });
 
   double get subtotal => quantity * unitPrice;
@@ -55,9 +59,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late final AppDatabase database;
   final List<ProductFormModel> productForms = [];
-  final List<String> delivery = [];
+  final List<String> orders = [];
 
-  final List<OrderItem> orderItems = [
+  List<OrderItem> orderItems = [
     // OrderItem(name: "Café", quantity: 2, unitPrice: 25.0),
     // OrderItem(name: "Pan", quantity: 1, unitPrice: 15.0),
   ];
@@ -114,6 +118,13 @@ class _HomePageState extends State<HomePage> {
     return StreamBuilder<List<Product>>(
       stream: database.watchProducts(),
       builder: (context, snapshot) {
+        /* if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }*/
+
+        if (snapshot.hasError) {
+          return Center(child: Text("Error: ${snapshot.error}"));
+        }
         final products = snapshot.data ?? [];
 
         return Column(
@@ -261,6 +272,18 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildOrdersList(List<Order> orders) {
+    return Padding(
+      padding: EdgeInsets.all(12),
+      child: ListView.builder(
+        itemCount: productForms.length,
+        itemBuilder: (context, index) {
+          return _buildOrderCard(orders);
+        },
+      ),
+    );
+  }
+
   Widget _footerSection() {
     final total = productForms.fold(
       0.0,
@@ -298,7 +321,7 @@ class _HomePageState extends State<HomePage> {
               InkWell(
                 onTap: () {
                   if (productForms.isNotEmpty) {
-                    final lastForm = productForms.last;
+                    ProductFormModel lastForm = productForms.last;
                     if (lastForm.product == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -308,8 +331,17 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                       return;
-                    }else if(total == 0.0){
-                     ScaffoldMessenger.of(context).showSnackBar(
+                    } else if (lastForm.total == 0.0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "El total del último producto no puede ser \$0.0",
+                          ),
+                        ),
+                      );
+                      return;
+                    } else if (total == 0.0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
                             "Para continuar el total general no puede ser \$0.0",
@@ -317,18 +349,18 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                       return;
-                    }else{
+                    } else {
                       _continueSell();
                     }
-                  }else{
+                  } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Para continuar debe haber un producto en la lista.",
-                          ),
+                      const SnackBar(
+                        content: Text(
+                          "Para continuar debe haber un producto en la lista.",
                         ),
-                      );
-                      return;
+                      ),
+                    );
+                    return;
                   }
                 },
                 borderRadius: BorderRadius.circular(50),
@@ -386,12 +418,15 @@ class _HomePageState extends State<HomePage> {
                     items: products.map((p) {
                       return DropdownMenuItem(value: p, child: Text(p.name));
                     }).toList(),
-                    onChanged: (p) {
+                    onChanged: (p) async {
                       if (p == null) return;
+
+                      final variants = await database.getVariantsByProduct(
+                        p.id,
+                      );
 
                       setState(() {
                         form.product = p;
-                        form.size = null;
                         form.byGrams = p.isByGrams;
 
                         form.grams = 0;
@@ -400,8 +435,12 @@ class _HomePageState extends State<HomePage> {
                         form.priceByKg = 0;
                         form.total = 0;
 
-                        gramsControllers[form.id]?.clear();
+                        if (!p.hasSizes) {
+                          form.size = variants.first.size;
+                        }
                       });
+
+                      gramsControllers[form.id]?.clear();
                       if (!p.hasSizes && !p.isByGrams) {
                         _loadUnityPrice(form);
                       }
@@ -436,7 +475,7 @@ class _HomePageState extends State<HomePage> {
                     if (variants.isNotEmpty) {
                       // Asigna el precio por kilo de la variante GRAMOS
                       final gramsVariant = variants.firstWhere(
-                        (v) => v.size.toUpperCase() == "GRAMOS",
+                        (v) => v.size == 1,
                         orElse: () => variants.first,
                       );
                       form.priceByKg = gramsVariant.pricePerKg ?? 0.0;
@@ -484,11 +523,120 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case "Pendiente":
+        return Colors.orange;
+      case "En preparación":
+        return Colors.blue;
+      case "Listo":
+        return Colors.green;
+      case "Entregado":
+        return Colors.grey;
+      default:
+        return Colors.black;
+    }
+  }
+
+  Widget _buildOrderCard(List<Order> orders) {
+    return Column(
+      children: orders.map((order) {
+        return InkWell(
+          onTap: () {
+            _changeProgressStatus(order);
+          },
+          child: Card(
+            color: Colors.white,
+            margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Orden #${order.id}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+
+                      // Estado
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(order.processStatus),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          order.processStatus,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Fecha
+                  Text(
+                    "Fecha: ${order.createdAt}",
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Total
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Total",
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        "\$${order.totalAmount.toStringAsFixed(2)}",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: PuventColors.primaryGreen.color,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Método de pago (si existe)
+                  if (order.paymentMethod != null)
+                    Text(
+                      "Pago: ${order.paymentMethod}",
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Future<void> _loadUnityPrice(ProductFormModel form) async {
     final variants = await database.getVariantsByProduct(form.product!.id);
 
     final uniqueVariant = variants.firstWhere(
-      (v) => v.size.toUpperCase() == "UNICO",
+      (v) => v.size == 1,
       orElse: () => variants.first,
     );
 
@@ -499,35 +647,41 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildSizes(ProductFormModel form) {
-    return StreamBuilder<List<ProductVariant>>(
-      stream: database.watchVariants(form.product!.id),
+    return StreamBuilder<List<(ProductVariant, ProductSize)>>(
+      stream: database.watchVariantsWithSize(form.product!.id),
       builder: (context, snapshot) {
-        final variants = snapshot.data ?? [];
+        final data = snapshot.data ?? [];
 
         // // Solo limpiar si el producto cambió o el valor ya no existe
         // if (form.size != null &&
         //     form.product != null &&
-        //     !variants.any((v) => v.size == form.size)) {
+        //     !data.any((v) => v.size == form.size)) {
         //   // Evita limpiar si el producto es el mismo y el valor sigue siendo válido
         //   form.size = null;
         //   form.unityPrice = 0.0;
         // }
+        
 
-        return DropdownButtonFormField<String>(
-          value: variants.any((v) => v.size == form.size) ? form.size : null,
+        return DropdownButtonFormField<int>(
+          //value: data.any((v) => v.size == int.parse(form.size!)) ? form.size : null,
+          value: form.size,
           hint: const Text("Seleccionar tamaño"),
-          items: variants.map((v) {
+          items: data.map((v) {
+            final variant = v.$1;
+            final size = v.$2;
+
+
             return DropdownMenuItem(
-              value: v.size,
-              child: Text("${v.size} - \$${v.price}"),
+              value: variant.size,
+              child: Text("${size.name} - \$${variant.price}"),
             );
           }).toList(),
           onChanged: (v) {
-            final variant = variants.firstWhere((element) => element.size == v);
+            final variant = data.firstWhere((element) => element.$1.size == v);
 
             setState(() {
               form.size = v;
-              form.unityPrice = variant.price!;
+              form.unityPrice = variant.$1.price!;
               form.total = _calculateItemTotal(form);
             });
           },
@@ -727,59 +881,416 @@ class _HomePageState extends State<HomePage> {
     return form.unityPrice * form.quantity;
   }
 
-  void _continueSell() {
+  void _openPaymentDialog(List<OrderItem> items, double total) {
+    final paidController = TextEditingController();
+    double change = 0;
+
     showDialog(
+      barrierDismissible: false,
       context: context,
       builder: (context) {
-        final total = orderItems.fold<double>(
-          0,
-          (sum, item) => sum + item.subtotal,
-        );
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                constraints: const BoxConstraints(maxHeight: 500),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Cobrar",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: PuventColors.primaryGreen.color,
+                          ),
+                        ),
+                        Icon(
+                          Icons.receipt_long,
+                          color: PuventColors.primaryGreen.color,
+                        ),
+                      ],
+                    ),
 
-        return AlertDialog(
-          title: const Text("Resumen de venta"),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ...orderItems.map(
-                (item) => Text(
-                  "${item.quantity} x ${item.name} - \$${item.subtotal.toStringAsFixed(2)}",
+                    const SizedBox(height: 10),
+                    Divider(),
+
+                    Text(
+                      "Total \$${total.toStringAsFixed(2)}",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: PuventColors.primaryGreen.color,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    TextField(
+                      controller: paidController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Recibido"),
+                      onChanged: (value) {
+                        final paid = double.tryParse(value) ?? 0;
+                        setState(() {
+                          change = paid - total;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    Text(
+                      "Cambio: \$${change.toStringAsFixed(2)}",
+                      style: TextStyle(
+                        color: change < 0 ? Colors.red : Colors.green,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
+                    Divider(),
+                    // Botones
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Cancelar"),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: PuventColors.primaryGreen.color,
+                            ),
+                            onPressed: change < 0
+                                ? null
+                                : () async {
+                                    await _saveOrder(
+                                      items,
+                                      total,
+                                      paidController.text,
+                                    );
+                                    Navigator.pop(context);
+                                  },
+                            child: const Text(
+                              "Confirmar",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                "Total: \$${total.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Aceptar'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
   }
 
+  Future<void> _saveOrder(
+    List<OrderItem> items,
+    double total,
+    String paidText,
+  ) async {
+    final paid = double.tryParse(paidText) ?? 0;
+    final change = paid - total;
+
+    //  Insertar orden
+    final orderId = await database
+        .into(database.orders)
+        .insert(
+          OrdersCompanion.insert(
+            totalAmount: total,
+            paymentMethod: drift.Value("Efectivo"),
+            processStatus: drift.Value("Pendiente"),
+          ),
+        );
+
+    // Insertar items
+    for (var item in items) {
+      await database
+          .into(database.orderItems)
+          .insert(
+            OrderItemsCompanion.insert(
+              orderId: orderId,
+              variantId: drift.Value(item.variantId), // importante
+              unitPrice: item.unitPrice,
+              subtotal: item.subtotal,
+            ),
+          );
+    }
+
+    //  3. Limpiar carrito
+    setState(() {
+      productForms.clear();
+    });
+  }
+
+  void _continueSell() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final orderItems = productForms.map((p) {
+          return OrderItem(
+            variantId: p.size!,
+            name: p.product!.name,
+            quantity: p.quantity,
+            unitPrice: p.unityPrice == 0 ? p.total : p.unityPrice,
+          );
+        }).toList();
+
+        final total = orderItems.fold<double>(
+          0,
+          (sum, item) => sum + item.subtotal,
+        );
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            constraints: const BoxConstraints(maxHeight: 500),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Resumen",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: PuventColors.primaryGreen.color,
+                      ),
+                    ),
+                    Icon(
+                      Icons.receipt_long,
+                      color: PuventColors.primaryGreen.color,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+                Divider(),
+
+                // Lista de productos
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: orderItems.length,
+                    separatorBuilder: (_, __) => Divider(),
+                    itemBuilder: (context, index) {
+                      final item = orderItems[index];
+
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Nombre + cantidad
+                          Expanded(
+                            child: Text(
+                              "${item.quantity} x ${item.name}",
+                              style: const TextStyle(fontSize: 16),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+
+                          // Subtotal
+                          Text(
+                            "\$${item.subtotal.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+
+                Divider(),
+
+                //  Total destacado
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Total",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "\$${total.toStringAsFixed(2)}",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: PuventColors.primaryGreen.color,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 15),
+
+                // Botones
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancelar"),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: PuventColors.primaryGreen.color,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _openPaymentDialog(orderItems, total);
+                        },
+                        child: const Text(
+                          "Cobrar",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _changeProgressStatus(Order order) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            constraints: const BoxConstraints(maxHeight: 500),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Estatus",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: PuventColors.primaryGreen.color,
+                      ),
+                    ),
+                    Icon(
+                      Icons.receipt_long,
+                      color: PuventColors.primaryGreen.color,
+                    ),
+                  ],
+                ),
+                Text(
+                  "Orden ${order.id}",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: PuventColors.primaryGreen.color,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                Divider(),
+                Text(
+                  "Orden ${order.processStatus}",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: PuventColors.primaryGreen.color,
+                  ),
+                ),
+                const SizedBox(height: 15),
+
+                // Botones
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Cancelar"),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: PuventColors.primaryGreen.color,
+                        ),
+                        onPressed: () {
+                          _changeStatus(order);
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          "Entregado",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _changeStatus(Order order) async {
+    await (database.update(database.orders)
+          ..where((tbl) => tbl.id.equals(order.id)))
+        .write(OrdersCompanion(processStatus: const drift.Value("Entregado")));
+  }
+
   // ===================== PEDIDOS =====================
   Widget _pedidosView() {
-    return StreamBuilder<List<Product>>(
-      stream: database.watchProducts(),
+    return StreamBuilder<List<Order>>(
+      stream: database.watchOrders(),
       builder: (context, snapshot) {
-        final products = snapshot.data ?? [];
+        final orders = snapshot.data ?? [];
 
         return Column(
           children: [
@@ -792,7 +1303,7 @@ class _HomePageState extends State<HomePage> {
                     label: "Lista de Pedidos",
                   ),
                   Expanded(
-                    child: delivery.isEmpty
+                    child: orders.isEmpty
                         ? Center(
                             child: Text(
                               "Aún no hay pedidos en cola",
@@ -801,7 +1312,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                           )
-                        : _buildFormList(products),
+                        : _buildOrdersList(orders),
                   ),
                 ],
               ),

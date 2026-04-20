@@ -16,18 +16,14 @@ class DatabaseProvider {
   static final AppDatabase instance = AppDatabase();
 }
 
-@DriftDatabase(tables: [
-  Products,
-  ProductVariants,
-  ProductSizes,
-  Orders,
-  OrderItems
-  ])
+@DriftDatabase(
+  tables: [Products, ProductVariants, ProductSizes, Orders, OrderItems],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 1;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,11 +36,14 @@ class AppDatabase extends _$AppDatabase {
         // Definir que hacer al pasar de version X a Y
         //await m.addColumn(products, products.price);
         ////////////////////////////
-        
-          await m.createTable(orders);
-          await m.createTable(orderItems);
 
-        
+        await m.createAll();
+
+        // Insertar tamaño "Único"
+        await into(
+          productSizes,
+        ).insert(ProductSizesCompanion.insert(name: "UNICO"));
+
         ///////////////////////
         //   print("ACTUAIZA");
         //   await m.createTable(productVariants);
@@ -113,6 +112,20 @@ class AppDatabase extends _$AppDatabase {
   Future updateVariant(ProductVariant variant) =>
       update(productVariants).replace(variant);
 
+  Stream<List<(ProductVariant, ProductSize)>> watchVariantsWithSize(
+    int productId,
+  ) {
+    final query = select(productVariants).join([
+      innerJoin(productSizes, productSizes.id.equalsExp(productVariants.id)),
+    ])..where(productVariants.productId.equals(productId));
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return (row.readTable(productVariants), row.readTable(productSizes));
+      }).toList();
+    });
+  }
+
   // CRUD operations for Sizes
   Future<int> insertSize(ProductSizesCompanion size) =>
       into(productSizes).insert(size);
@@ -133,22 +146,44 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<Order>> getAllOrders() => select(orders).get();
 
-  Future deleteOrder(int id) => (delete(orders)..where((tbl) => tbl.id.equals(id))).go();
+  Future deleteOrder(int id) =>
+      (delete(orders)..where((tbl) => tbl.id.equals(id))).go();
 
   Future updateOrder(Order order) => update(orders).replace(order);
 
+  Future<int> getUniqueSizeId() async {
+    final existing = await (select(
+      productSizes,
+    )..where((tbl) => tbl.name.equals("UNICO"))).getSingleOrNull();
+
+    if (existing != null) return existing.id;
+
+    await into(productSizes).insert(
+      ProductSizesCompanion.insert(name: "UNICO"),
+      mode: InsertMode.insertOrIgnore,
+    );
+
+    final created = await (select(
+      productSizes,
+    )..where((tbl) => tbl.name.equals("UNICO"))).getSingle();
+
+    return created.id;
+  }
+
   // CRUD operations for Items Order
 
-  Future<int> insertOrderItem(OrderItemsCompanion orderItem) => into(orderItems).insert(orderItem);
+  Future<int> insertOrderItem(OrderItemsCompanion orderItem) =>
+      into(orderItems).insert(orderItem);
 
   Stream<List<OrderItem>> watchOrderItems() => select(orderItems).watch();
 
   Future<List<OrderItem>> getAllOrderItems() => select(orderItems).get();
 
-  Future deleteOrderItem(int id) => (delete(orderItems)..where((tbl) => tbl.id.equals(id))).go();
+  Future deleteOrderItem(int id) =>
+      (delete(orderItems)..where((tbl) => tbl.id.equals(id))).go();
 
-  Future updateOrderItem(OrderItem orderItem) => (update(orderItems).replace(orderItem));
-
+  Future updateOrderItem(OrderItem orderItem) =>
+      (update(orderItems).replace(orderItem));
 }
 
 //conexión SQLite

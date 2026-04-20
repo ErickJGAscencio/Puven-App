@@ -24,6 +24,13 @@ enum ColorLabel {
   final Color color;
 }
 
+class VariantForm {
+  int? sizeId;
+  String price;
+
+  VariantForm({this.sizeId, this.price = ""});
+}
+
 class _MyProductsPage extends State<MyProductsPage> {
   late final AppDatabase database;
   late Future<List<ProductSize>> sizesFuture;
@@ -350,15 +357,22 @@ class _MyProductsPage extends State<MyProductsPage> {
     bool isByGrams = product?.isByGrams ?? false;
     String simplePrice = "";
 
-    List<Map<String, dynamic>> variants = [
-      {"size": "", "price": ""},
-    ];
+    List<VariantForm> variants = [VariantForm()];
 
     if (product != null && hasSizes) {
       //CArgar vlas variantes
       final existingVariants = await database.getVariantsByProduct(product.id);
-      variants = existingVariants
-          .map((v) => {"size": v.size, "price": v.price.toString()})
+      final uniqueSizeId = await database.getUniqueSizeId();
+
+      final filteredData = existingVariants
+          .where((v) => v.size != uniqueSizeId)
+          .toList();
+
+      variants = filteredData
+          .map(
+            (v) =>
+                VariantForm(sizeId: v.size, price: v.price?.toString() ?? ""),
+          )
           .toList();
     } else if (product != null && isByGrams) {
       //Precio por kilo
@@ -524,14 +538,17 @@ class _MyProductsPage extends State<MyProductsPage> {
                                   return Row(
                                     children: [
                                       Expanded(
-                                        child: DropdownMenu<String>(
-                                          initialSelection: variants[i]["size"],
-                                          onSelected: (v) =>
-                                              variants[i]["size"] = v ?? "",
+                                        child: DropdownMenu<int>(
+                                          initialSelection: variants[i].sizeId,
+                                          onSelected: (v) {
+                                            setModalState(() {
+                                              variants[i].sizeId = v;
+                                            });
+                                          },
                                           dropdownMenuEntries: sizes
                                               .map(
-                                                (s) => DropdownMenuEntry(
-                                                  value: s.name,
+                                                (s) => DropdownMenuEntry<int>(
+                                                  value: s.id,
                                                   label: s.name,
                                                 ),
                                               )
@@ -541,14 +558,14 @@ class _MyProductsPage extends State<MyProductsPage> {
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: TextFormField(
-                                          initialValue: variants[i]["price"]
+                                          initialValue: variants[i].price
                                               .toString(),
                                           keyboardType: TextInputType.number,
                                           decoration: const InputDecoration(
                                             labelText: "Precio",
                                           ),
                                           onChanged: (v) =>
-                                              variants[i]["price"] = v,
+                                              variants[i].price = v,
                                         ),
                                       ),
                                       IconButton(
@@ -566,7 +583,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                                 ElevatedButton.icon(
                                   onPressed: () {
                                     setModalState(() {
-                                      variants.add({"size": "", "price": ""});
+                                      variants.add(VariantForm());
                                     });
                                   },
                                   icon: const Icon(Icons.add),
@@ -612,21 +629,29 @@ class _MyProductsPage extends State<MyProductsPage> {
                               // VARIANTES
                               if (hasSizes) {
                                 for (var v in variants) {
+                                  if (v.sizeId == null) {
+                                    throw Exception("Selecciona un tamaño");
+                                  }
+
                                   await database.insertVariant(
                                     ProductVariantsCompanion(
                                       productId: drift.Value(productId),
-                                      size: drift.Value(v["size"]),
+                                      size: drift.Value(v.sizeId!),
                                       price: drift.Value(
-                                        double.tryParse(v['price']) ?? 0,
+                                        double.tryParse(v.price) ?? 0,
                                       ),
                                     ),
                                   );
                                 }
                               } else if (isByGrams) {
+                                final uniqueSizeId = await database
+                                    .getUniqueSizeId();
                                 await database.insertVariant(
                                   ProductVariantsCompanion(
                                     productId: drift.Value(productId),
-                                    size: const drift.Value("GRAMOS"),
+                                    size: drift.Value(
+                                      uniqueSizeId,
+                                    ), //aquí se asigno lode gramos
                                     pricePerKg: drift.Value(
                                       double.tryParse(
                                             pricePerKgController.text,
@@ -640,7 +665,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                                 await database.insertVariant(
                                   ProductVariantsCompanion(
                                     productId: drift.Value(productId),
-                                    size: const drift.Value("UNICO"),
+                                    size: drift.Value(1),
                                     price: drift.Value(
                                       double.tryParse(simplePrice) ?? 0,
                                     ),
