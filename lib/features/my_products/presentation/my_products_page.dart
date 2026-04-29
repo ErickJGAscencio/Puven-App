@@ -57,12 +57,8 @@ class _MyProductsPage extends State<MyProductsPage> {
               unselectedLabelColor: Colors.grey,
               labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               tabs: [
-                Tab(
-                  text: "Productos",
-                  icon: Icon(Icons.inventory)),
-                Tab(
-                  text: "Tamaños",
-                  icon: Icon(Icons.straighten)),
+                Tab(text: "Productos", icon: Icon(Icons.inventory)),
+                Tab(text: "Tamaños", icon: Icon(Icons.straighten)),
               ],
             ),
           ),
@@ -297,7 +293,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue),
                   onPressed: () =>
-                      _openProductModal(product: product, edit: true),
+                      _openProductModal(product: product),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
@@ -357,29 +353,24 @@ class _MyProductsPage extends State<MyProductsPage> {
   }
 
   // ================= MODAL =================
-  void _openProductModal({Product? product, bool? edit}) async {
+  void _openProductModal({Product? product}) async {
     final nameController = TextEditingController(text: product?.name ?? "");
 
     final pricePerKgController = TextEditingController();
     final simplePriceController = TextEditingController();
+
     bool hasSizes = product?.hasSizes ?? false;
     bool isByGrams = product?.isByGrams ?? false;
-    String simplePrice = "";
 
     List<VariantForm> variants = [VariantForm()];
 
-    final isEditing = edit;
     final uniqueSizeId = await database.getUniqueSizeId();
 
+    //  Cargar datos si es edición
     if (product != null && hasSizes) {
-      //CArgar vlas variantes
       final existingVariants = await database.getVariantsByProduct(
         product.productId,
       );
-
-      /// final filteredData = existingVariants
-      //  .where((v) => v.productSizeId != uniqueSizeId)
-      //.toList();
 
       variants = existingVariants
           .map(
@@ -390,22 +381,22 @@ class _MyProductsPage extends State<MyProductsPage> {
           )
           .toList();
     } else if (product != null && isByGrams) {
-      //Precio por kilo
       final existingVariants = await database.getVariantsByProduct(
         product.productId,
       );
+
       if (existingVariants.isNotEmpty) {
-        pricePerKgController.text = existingVariants.first.pricePerKg
-            .toString();
+        pricePerKgController.text =
+            existingVariants.first.pricePerKg?.toString() ?? "";
       }
     } else if (product != null) {
-      // Precio fijo
       final existingVariant = await database.getVariantsByProduct(
         product.productId,
       );
+
       if (existingVariant.isNotEmpty) {
-        simplePrice = existingVariant.first.price.toString();
-        simplePriceController.text = existingVariant.first.price.toString();
+        simplePriceController.text =
+            existingVariant.first.price?.toString() ?? "";
       }
     }
 
@@ -421,9 +412,10 @@ class _MyProductsPage extends State<MyProductsPage> {
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
+
             final sizes = snapshot.data ?? [];
             final filteredSizes = sizes
-                .where((e) => (e.name.toUpperCase() != "UNICO"))
+                .where((e) => e.name.toUpperCase() != "UNICO")
                 .toList();
 
             return StatefulBuilder(
@@ -438,7 +430,6 @@ class _MyProductsPage extends State<MyProductsPage> {
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           product == null
@@ -448,187 +439,129 @@ class _MyProductsPage extends State<MyProductsPage> {
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
-                          textAlign: TextAlign.start,
                         ),
 
                         const SizedBox(height: 16),
+
                         // Nombre
                         TextField(
                           controller: nameController,
                           decoration: const InputDecoration(
-                            labelText: "Ingrese nombre del producto",
+                            labelText: "Nombre del producto",
                             border: OutlineInputBorder(),
                           ),
                         ),
+
                         const SizedBox(height: 10),
 
-                        // switches
+                        // Switches
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Expanded(
                               child: SwitchListTile(
                                 value: hasSizes,
-                                activeTrackColor:
-                                    PuventColors.primaryGreen.color,
                                 onChanged: isByGrams
                                     ? null
-                                    : (value) {
-                                        setModalState(() {
-                                          hasSizes = value;
-                                        });
-                                      },
-                                title: const Text(
-                                  "Tamaños",
-                                  style: TextStyle(fontSize: 15),
-                                ),
+                                    : (v) => setModalState(() => hasSizes = v),
+                                title: const Text("Tamaños"),
                               ),
                             ),
-                            SizedBox(width: 10),
                             Expanded(
                               child: SwitchListTile(
                                 value: isByGrams,
-                                activeTrackColor:
-                                    PuventColors.primaryGreen.color,
                                 onChanged: hasSizes
                                     ? null
-                                    : (value) {
-                                        setModalState(() {
-                                          isByGrams = value;
-                                        });
-                                      },
-                                title: const Text(
-                                  "Gramaje",
-                                  style: TextStyle(fontSize: 15),
-                                ),
+                                    : (v) => setModalState(() => isByGrams = v),
+                                title: const Text("Gramaje"),
                               ),
                             ),
                           ],
                         ),
+
                         const SizedBox(height: 10),
 
-                        // Gramos
+                        // ⚖️ GRAMOS
                         if (isByGrams)
-                          RichText(
-                            text: TextSpan(
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: "El precio final se calcula en ",
-                                ),
-                                TextSpan(
-                                  text: "Punto de Venta.",
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
+                          TextFormField(
+                            controller: pricePerKgController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: "Precio por Kg",
+                              border: OutlineInputBorder(),
                             ),
                           ),
 
-                        // Tamaños
+                        // TAMAÑOS
                         if (hasSizes)
-                          if (sizes.isEmpty)
-                            RichText(
-                              text: TextSpan(
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                                children: [
-                                  TextSpan(text: "No hay "),
-                                  TextSpan(
-                                    text: "Tamaños ",
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  TextSpan(text: "registrados."),
-                                ],
-                              ),
-                            )
-                          else
-                            Column(
-                              children: [
-                                ...variants.asMap().entries.map((entry) {
-                                  int i = entry.key;
-                                  return Row(
-                                    children: [
-                                      Expanded(
-                                        child: DropdownMenu<int>(
-                                          initialSelection: variants[i].sizeId,
-                                          onSelected: (v) {
-                                            setModalState(() {
-                                              variants[i].sizeId = v;
-                                            });
-                                          },
-                                          dropdownMenuEntries: filteredSizes
-                                              .map(
-                                                (s) => DropdownMenuEntry<int>(
-                                                  value: s.productSizeId,
-                                                  label: s.name,
-                                                ),
-                                              )
-                                              .toList(),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: TextFormField(
-                                          initialValue: variants[i].price
-                                              .toString(),
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            labelText: "Precio",
-                                          ),
-                                          onChanged: (v) =>
-                                              variants[i].price = v,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete),
-                                        onPressed: () {
+                          Column(
+                            children: [
+                              ...variants.asMap().entries.map((entry) {
+                                int i = entry.key;
+
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: DropdownMenu<int>(
+                                        initialSelection: variants[i].sizeId,
+                                        onSelected: (v) {
                                           setModalState(() {
-                                            variants.removeAt(i);
+                                            variants[i].sizeId = v;
                                           });
                                         },
+                                        dropdownMenuEntries: filteredSizes
+                                            .map(
+                                              (s) => DropdownMenuEntry<int>(
+                                                value: s.productSizeId,
+                                                label: s.name,
+                                              ),
+                                            )
+                                            .toList(),
                                       ),
-                                    ],
-                                  );
-                                }),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: TextFormField(
+                                        initialValue: variants[i].price,
+                                        keyboardType: TextInputType.number,
+                                        decoration: const InputDecoration(
+                                          labelText: "Precio",
+                                        ),
+                                        onChanged: (v) => variants[i].price = v,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete),
+                                      onPressed: () {
+                                        setModalState(() {
+                                          variants.removeAt(i);
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                );
+                              }),
 
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    setModalState(() {
-                                      variants.add(VariantForm());
-                                    });
-                                  },
-                                  icon: const Icon(Icons.add),
-                                  label: const Text("Agregar tamaño"),
-                                ),
-                              ],
-                            ),
-                        const SizedBox(height: 10),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  setModalState(() {
+                                    variants.add(VariantForm());
+                                  });
+                                },
+                                icon: const Icon(Icons.add),
+                                label: const Text("Agregar tamaño"),
+                              ),
+                            ],
+                          ),
+
                         // PRECIO SIMPLE
-                        if (!hasSizes)
+                        if (!hasSizes && !isByGrams)
                           TextFormField(
-                            controller: isByGrams
-                                ? pricePerKgController
-                                : simplePriceController,
+                            controller: simplePriceController,
                             keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: isByGrams
-                                  ? "Ingrese precio por Kilo"
-                                  : "Precio",
+                            decoration: const InputDecoration(
+                              labelText: "Precio",
                               border: OutlineInputBorder(),
                             ),
-                            onChanged: (v) => simplePrice = v,
                           ),
 
                         const SizedBox(height: 20),
@@ -637,24 +570,44 @@ class _MyProductsPage extends State<MyProductsPage> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            style: ButtonStyle(),
                             onPressed: () async {
-                              final name = nameController.text;
+                              final name = nameController.text.trim();
+                              final isEditing = product != null;
 
-                              final productId = await database.insertProduct(
-                                ProductsCompanion(
-                                  name: drift.Value(name),
-                                  hasSizes: drift.Value(hasSizes),
-                                  isByGrams: drift.Value(isByGrams),
-                                ),
-                              );
+                              int productId;
 
-                              // VARIANTES
+                              if (!isEditing) {
+                                // CREAR
+                                productId = await database.insertProduct(
+                                  ProductsCompanion(
+                                    name: drift.Value(name),
+                                    hasSizes: drift.Value(hasSizes),
+                                    isByGrams: drift.Value(isByGrams),
+                                  ),
+                                );
+                              } else {
+                                // EDITAR
+                                productId = product.productId;
+
+                                await database.updateProduct(
+                                  Product(
+                                    productId: productId,
+                                    name: name,
+                                    hasSizes: hasSizes,
+                                    isByGrams: isByGrams,
+                                  ),
+                                );
+
+                                // limpiar variantes anteriores
+                                await database.deleteVariantsByProduct(
+                                  productId,
+                                );
+                              }
+
+                              // INSERTAR VARIANTES
                               if (hasSizes) {
                                 for (var v in variants) {
-                                  if (v.sizeId == null) {
-                                    throw Exception("Selecciona un tamaño");
-                                  }
+                                  if (v.sizeId == null) continue;
 
                                   await database.insertVariant(
                                     ProductVariantsCompanion(
@@ -667,14 +620,10 @@ class _MyProductsPage extends State<MyProductsPage> {
                                   );
                                 }
                               } else if (isByGrams) {
-                                final uniqueSizeId = await database
-                                    .getUniqueSizeId();
                                 await database.insertVariant(
                                   ProductVariantsCompanion(
                                     productId: drift.Value(productId),
-                                    productSizeId: drift.Value(
-                                      uniqueSizeId,
-                                    ), //aquí se asigno lode gramos
+                                    productSizeId: drift.Value(uniqueSizeId),
                                     pricePerKg: drift.Value(
                                       double.tryParse(
                                             pricePerKgController.text,
@@ -684,24 +633,25 @@ class _MyProductsPage extends State<MyProductsPage> {
                                   ),
                                 );
                               } else {
-                                // producto simple como variante única
                                 await database.insertVariant(
                                   ProductVariantsCompanion(
                                     productId: drift.Value(productId),
-                                    productSizeId: drift.Value(uniqueSizeId), //Cambiar esto por el valor real
+                                    productSizeId: drift.Value(uniqueSizeId),
                                     price: drift.Value(
-                                      double.tryParse(simplePrice) ?? 0,
+                                      double.tryParse(
+                                            simplePriceController.text,
+                                          ) ??
+                                          0,
                                     ),
                                   ),
                                 );
                               }
+
                               Navigator.pop(context);
                             },
                             child: const Text("Guardar"),
                           ),
                         ),
-
-                        const SizedBox(height: 10),
                       ],
                     ),
                   ),
