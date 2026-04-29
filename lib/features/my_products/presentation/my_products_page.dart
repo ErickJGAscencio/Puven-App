@@ -57,8 +57,12 @@ class _MyProductsPage extends State<MyProductsPage> {
               unselectedLabelColor: Colors.grey,
               labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               tabs: [
-                Tab(icon: Icon(Icons.inventory)),
-                Tab(icon: Icon(Icons.straighten)),
+                Tab(
+                  text: "Productos",
+                  icon: Icon(Icons.inventory)),
+                Tab(
+                  text: "Tamaños",
+                  icon: Icon(Icons.straighten)),
               ],
             ),
           ),
@@ -217,7 +221,7 @@ class _MyProductsPage extends State<MyProductsPage> {
     );
   }
 
-  // ================= LISTA =================
+  // ================= LISTAS =================
   Widget _listProducts() {
     return StreamBuilder<List<Product>>(
       stream: database.watchProducts(),
@@ -241,13 +245,17 @@ class _MyProductsPage extends State<MyProductsPage> {
       builder: (context, snapshot) {
         final sizes = snapshot.data ?? [];
 
-        if (sizes.isEmpty) {
+        final filteredSized = sizes
+            .where((s) => (s.name.toUpperCase() != "UNICO"))
+            .toList();
+
+        if (filteredSized.isEmpty) {
           return const Center(child: Text("No hay tamaños"));
         }
 
         return ListView.builder(
-          itemCount: sizes.length,
-          itemBuilder: (_, i) => _productSizeTile(sizes[i]),
+          itemCount: filteredSized.length,
+          itemBuilder: (_, i) => _productSizeTile(filteredSized[i]),
         );
       },
     );
@@ -288,13 +296,14 @@ class _MyProductsPage extends State<MyProductsPage> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => _openProductModal(product: product),
+                  onPressed: () =>
+                      _openProductModal(product: product, edit: true),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () async {
-                    await database.deleteVariantsByProduct(product.id);
-                    await database.deleteProduct(product.id);
+                    await database.deleteVariantsByProduct(product.productId);
+                    await database.deleteProduct(product.productId);
                   },
                 ),
               ],
@@ -336,7 +345,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () async {
-                    await database.deleteSize(sizes.id);
+                    await database.deleteSize(sizes.productSizeId);
                   },
                 ),
               ],
@@ -348,7 +357,7 @@ class _MyProductsPage extends State<MyProductsPage> {
   }
 
   // ================= MODAL =================
-  void _openProductModal({Product? product}) async {
+  void _openProductModal({Product? product, bool? edit}) async {
     final nameController = TextEditingController(text: product?.name ?? "");
 
     final pricePerKgController = TextEditingController();
@@ -359,31 +368,41 @@ class _MyProductsPage extends State<MyProductsPage> {
 
     List<VariantForm> variants = [VariantForm()];
 
+    final isEditing = edit;
+    final uniqueSizeId = await database.getUniqueSizeId();
+
     if (product != null && hasSizes) {
       //CArgar vlas variantes
-      final existingVariants = await database.getVariantsByProduct(product.id);
-      final uniqueSizeId = await database.getUniqueSizeId();
+      final existingVariants = await database.getVariantsByProduct(
+        product.productId,
+      );
 
-      final filteredData = existingVariants
-          .where((v) => v.size != uniqueSizeId)
-          .toList();
+      /// final filteredData = existingVariants
+      //  .where((v) => v.productSizeId != uniqueSizeId)
+      //.toList();
 
-      variants = filteredData
+      variants = existingVariants
           .map(
-            (v) =>
-                VariantForm(sizeId: v.size, price: v.price?.toString() ?? ""),
+            (v) => VariantForm(
+              sizeId: v.productSizeId,
+              price: v.price?.toString() ?? "",
+            ),
           )
           .toList();
     } else if (product != null && isByGrams) {
       //Precio por kilo
-      final existingVariants = await database.getVariantsByProduct(product.id);
+      final existingVariants = await database.getVariantsByProduct(
+        product.productId,
+      );
       if (existingVariants.isNotEmpty) {
         pricePerKgController.text = existingVariants.first.pricePerKg
             .toString();
       }
     } else if (product != null) {
       // Precio fijo
-      final existingVariant = await database.getVariantsByProduct(product.id);
+      final existingVariant = await database.getVariantsByProduct(
+        product.productId,
+      );
       if (existingVariant.isNotEmpty) {
         simplePrice = existingVariant.first.price.toString();
         simplePriceController.text = existingVariant.first.price.toString();
@@ -403,6 +422,10 @@ class _MyProductsPage extends State<MyProductsPage> {
               return const Center(child: CircularProgressIndicator());
             }
             final sizes = snapshot.data ?? [];
+            final filteredSizes = sizes
+                .where((e) => (e.name.toUpperCase() != "UNICO"))
+                .toList();
+
             return StatefulBuilder(
               builder: (context, setModalState) {
                 return Padding(
@@ -545,10 +568,10 @@ class _MyProductsPage extends State<MyProductsPage> {
                                               variants[i].sizeId = v;
                                             });
                                           },
-                                          dropdownMenuEntries: sizes
+                                          dropdownMenuEntries: filteredSizes
                                               .map(
                                                 (s) => DropdownMenuEntry<int>(
-                                                  value: s.id,
+                                                  value: s.productSizeId,
                                                   label: s.name,
                                                 ),
                                               )
@@ -636,7 +659,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                                   await database.insertVariant(
                                     ProductVariantsCompanion(
                                       productId: drift.Value(productId),
-                                      size: drift.Value(v.sizeId!),
+                                      productSizeId: drift.Value(v.sizeId!),
                                       price: drift.Value(
                                         double.tryParse(v.price) ?? 0,
                                       ),
@@ -649,7 +672,7 @@ class _MyProductsPage extends State<MyProductsPage> {
                                 await database.insertVariant(
                                   ProductVariantsCompanion(
                                     productId: drift.Value(productId),
-                                    size: drift.Value(
+                                    productSizeId: drift.Value(
                                       uniqueSizeId,
                                     ), //aquí se asigno lode gramos
                                     pricePerKg: drift.Value(
@@ -665,14 +688,13 @@ class _MyProductsPage extends State<MyProductsPage> {
                                 await database.insertVariant(
                                   ProductVariantsCompanion(
                                     productId: drift.Value(productId),
-                                    size: drift.Value(1),
+                                    productSizeId: drift.Value(uniqueSizeId), //Cambiar esto por el valor real
                                     price: drift.Value(
                                       double.tryParse(simplePrice) ?? 0,
                                     ),
                                   ),
                                 );
                               }
-
                               Navigator.pop(context);
                             },
                             child: const Text("Guardar"),

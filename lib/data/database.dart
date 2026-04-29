@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,9 +40,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
 
         // Insertar tamaño "Único"
-        await into(
-          productSizes,
-        ).insert(ProductSizesCompanion.insert(name: "UNICO"));
+       // await into(
+       //   productSizes,
+        //).insert(ProductSizesCompanion.insert(name: "UNICO"));
 
         ///////////////////////
         //   print("ACTUAIZA");
@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
         // ''');
         // //////////////////
         //         // 1. Añadir la columna en la nueva tabla
-        //       await m.addColumn(productVariants, productVariants.pricePerKg);
+               await m.addColumn(orders, orders.folio);
 
         //       // 2. Copiar datos de la columna antigua a la nueva
         //       await customStatement('''
@@ -82,7 +82,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Product>> getAllProducts() => select(products).get();
 
   Future deleteProduct(int id) =>
-      (delete(products)..where((tbl) => tbl.id.equals(id))).go();
+      (delete(products)..where((tbl) => tbl.productId.equals(id))).go();
 
   Future updateProduct(Product product) => update(products).replace(product);
 
@@ -116,7 +116,10 @@ class AppDatabase extends _$AppDatabase {
     int productId,
   ) {
     final query = select(productVariants).join([
-      innerJoin(productSizes, productSizes.id.equalsExp(productVariants.id)),
+      innerJoin(
+        productSizes,
+        productSizes.productSizeId.equalsExp(productVariants.productSizeId),
+      ),
     ])..where(productVariants.productId.equals(productId));
 
     return query.watch().map((rows) {
@@ -135,7 +138,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<ProductSize>> getAllSizes() => select(productSizes).get();
 
   Future deleteSize(int id) =>
-      (delete(productSizes)..where((tbl) => tbl.id.equals(id))).go();
+      (delete(productSizes)..where((tbl) => tbl.productSizeId.equals(id))).go();
 
   Future updateSize(ProductSize size) => update(productSizes).replace(size);
 
@@ -147,7 +150,7 @@ class AppDatabase extends _$AppDatabase {
   Future<List<Order>> getAllOrders() => select(orders).get();
 
   Future deleteOrder(int id) =>
-      (delete(orders)..where((tbl) => tbl.id.equals(id))).go();
+      (delete(orders)..where((tbl) => tbl.orderId.equals(id))).go();
 
   Future updateOrder(Order order) => update(orders).replace(order);
 
@@ -156,7 +159,7 @@ class AppDatabase extends _$AppDatabase {
       productSizes,
     )..where((tbl) => tbl.name.equals("UNICO"))).getSingleOrNull();
 
-    if (existing != null) return existing.id;
+    if (existing != null) return existing.productSizeId;
 
     await into(productSizes).insert(
       ProductSizesCompanion.insert(name: "UNICO"),
@@ -167,7 +170,7 @@ class AppDatabase extends _$AppDatabase {
       productSizes,
     )..where((tbl) => tbl.name.equals("UNICO"))).getSingle();
 
-    return created.id;
+    return created.productSizeId;
   }
 
   // CRUD operations for Items Order
@@ -179,12 +182,64 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<OrderItem>> getAllOrderItems() => select(orderItems).get();
 
+  Future<List<OrderItem>> getAllOrderItemsByOrder(int orderId) {
+    return (select(
+      orderItems,
+    )..where((tbl) => tbl.orderId.equals(orderId))).get();
+  }
+
+  Future<List<(OrderItem, Product, ProductSize)>> getOrderDetails(
+    int orderId,
+  ) async {
+    final query = select(orderItems).join([
+      innerJoin(
+        productVariants,
+        productVariants.productVariantId.equalsExp(orderItems.variantId),
+      ),
+      innerJoin(
+        products,
+        products.productId.equalsExp(productVariants.productId),
+      ),
+      innerJoin(
+        productSizes,
+        productSizes.productSizeId.equalsExp(productVariants.productSizeId),
+      ),
+    ])..where(orderItems.orderId.equals(orderId));
+
+    final rows = await query.get(); 
+
+    return rows.map((row) {
+      final item = row.readTable(orderItems);
+      final product = row.readTable(products);
+      final size = row.readTable(productSizes);
+
+      return (item, product, size);
+    }).toList();
+  }
+
   Future deleteOrderItem(int id) =>
-      (delete(orderItems)..where((tbl) => tbl.id.equals(id))).go();
+      (delete(orderItems)..where((tbl) => tbl.orderItemId.equals(id))).go();
 
   Future updateOrderItem(OrderItem orderItem) =>
       (update(orderItems).replace(orderItem));
 }
+
+/* Stream<List<(ProductVariant, ProductSize)>> watchVariantsWithSize(
+    int productId,
+  ) {
+    final query = select(productVariants).join([
+      innerJoin(
+        productSizes,
+        productSizes.productSizeId.equalsExp(productVariants.productSizeId),
+      ),
+    ])..where(productVariants.productId.equals(productId));
+
+    return query.watch().map((rows) {
+      return rows.map((row) {
+        return (row.readTable(productVariants), row.readTable(productSizes));
+      }).toList();
+    });
+  }*/
 
 //conexión SQLite
 LazyDatabase _openConnection() {

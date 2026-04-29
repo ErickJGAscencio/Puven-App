@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:localix/data/database.dart';
 import 'package:localix/data/tables/orders.dart';
 import 'package:localix/features/app_page/presentation/app_page.dart';
+import 'package:localix/helpers/cash_service.dart';
 import 'package:localix/widgets/pill.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ===================== MODEL =====================
 class ProductFormModel {
@@ -50,7 +52,8 @@ class OrderItem {
 // ===================== UI =====================
 class HomePage extends StatefulWidget {
   final AppDatabase database;
-  const HomePage({super.key, required this.database});
+  final bool isCashOpen;
+  const HomePage({super.key, required this.database, required this.isCashOpen});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -60,6 +63,9 @@ class _HomePageState extends State<HomePage> {
   late final AppDatabase database;
   final List<ProductFormModel> productForms = [];
   final List<String> orders = [];
+
+  String selectedStatusFilter = "PENDING";
+  String selectedSort = "OLDER";
 
   List<OrderItem> orderItems = [
     // OrderItem(name: "Café", quantity: 2, unitPrice: 25.0),
@@ -72,11 +78,14 @@ class _HomePageState extends State<HomePage> {
 
   final double totalGeneral = 0.0;
 
+  String folio = "0";
+
   @override
   void initState() {
     super.initState();
     database = widget.database;
     productForms.add(ProductFormModel());
+    _loadFolio();
   }
 
   @override
@@ -89,27 +98,71 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          Divider(color: Colors.grey.shade300, height: 1),
+
+    return Stack(
+      children: [
+        DefaultTabController(
+          length: 2,
+          child: Column(
+            children: [
+              Divider(color: Colors.grey.shade300, height: 1),
+              Container(
+                color: Colors.white,
+                child: TabBar(
+                  key: ValueKey("tabs"),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  labelColor: PuventColors.primaryGreen.color,
+                  unselectedLabelColor: Colors.grey,
+                  labelStyle: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  tabs: [
+                    Tab(text: "Punto", icon: Icon(Icons.point_of_sale)),
+                    Tab(text: "Pedidos", icon: Icon(Icons.list_alt)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: TabBarView(children: [_ventaView(), _pedidosView()]),
+              ),
+            ],
+          ),
+        ),
+        if (!widget.isCashOpen)
           Container(
-            color: Colors.white,
-            child: TabBar(
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: PuventColors.primaryGreen.color,
-              unselectedLabelColor: Colors.grey,
-              labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              tabs: [
-                Tab(icon: Icon(Icons.point_of_sale)),
-                Tab(icon: Icon(Icons.list_alt)),
-              ],
+            color: Colors.black.withOpacity(0.6),
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.all(20),
+                margin: EdgeInsets.symmetric(horizontal: 30),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock, size: 50, color: Colors.red),
+                    SizedBox(height: 10),
+                    Text(
+                      "Caja cerrada",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Debes abrir la caja para usar el sistema",
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          Expanded(child: TabBarView(children: [_ventaView(), _pedidosView()])),
-        ],
-      ),
+      ],
     );
   }
 
@@ -160,6 +213,14 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _loadFolio() async {
+    final newFolio = await CashService.generateFolio();
+
+    setState(() {
+      folio = newFolio;
+    });
+  }
+
   Widget _headerVenta() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -180,7 +241,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   SizedBox(width: 8),
                   Text(
-                    "·0000001",
+                    folio,
                     style: TextStyle(
                       fontSize: 18,
                       color: PuventColors.primaryGreyText.color,
@@ -202,25 +263,33 @@ class _HomePageState extends State<HomePage> {
           InkWell(
             borderRadius: BorderRadius.circular(50),
             onTap: () {
-              // Validar que haya al menos un formulario
               if (productForms.isNotEmpty) {
-                final lastForm = productForms.last;
+                final firstForm = productForms.first;
 
-                // Si el último formulario no tiene producto, no crear otro
-                if (lastForm.product == null) {
+                // No hay producto
+                if (firstForm.product == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text(
-                        "Primero selecciona un producto antes de agregar otro.",
-                      ),
+                      content: Text("Primero selecciona un producto."),
+                    ),
+                  );
+                  return;
+                }
+
+                // Producto sin total válido
+                if (firstForm.total.abs() < 0.0001) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("El total del producto no puede ser \$0.0"),
                     ),
                   );
                   return;
                 }
               }
 
+              // Todo bien → agregar nuevo arriba
               setState(() {
-                productForms.add(ProductFormModel());
+                productForms.insert(0, ProductFormModel());
               });
             },
             splashColor: Colors.white24,
@@ -260,6 +329,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // ===================== LISTAS =====================
   Widget _buildFormList(List<Product> products) {
     return Padding(
       padding: EdgeInsets.all(12),
@@ -276,9 +346,10 @@ class _HomePageState extends State<HomePage> {
     return Padding(
       padding: EdgeInsets.all(12),
       child: ListView.builder(
-        itemCount: productForms.length,
+        itemCount: orders.length,
         itemBuilder: (context, index) {
-          return _buildOrderCard(orders);
+          final order = orders[index];
+          return _buildOrderCard(order, index);
         },
       ),
     );
@@ -321,8 +392,8 @@ class _HomePageState extends State<HomePage> {
               InkWell(
                 onTap: () {
                   if (productForms.isNotEmpty) {
-                    ProductFormModel lastForm = productForms.last;
-                    if (lastForm.product == null) {
+                    ProductFormModel firstForm = productForms.first;
+                    if (firstForm.product == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -331,16 +402,16 @@ class _HomePageState extends State<HomePage> {
                         ),
                       );
                       return;
-                    } else if (lastForm.total == 0.0) {
+                    } else if (firstForm.total.abs() < 0.0001) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            "El total del último producto no puede ser \$0.0",
+                            "El total del producto no puede ser \$0.0",
                           ),
                         ),
                       );
                       return;
-                    } else if (total == 0.0) {
+                    } else if (total.abs() < 0.0001) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -422,7 +493,7 @@ class _HomePageState extends State<HomePage> {
                       if (p == null) return;
 
                       final variants = await database.getVariantsByProduct(
-                        p.id,
+                        p.productId,
                       );
 
                       setState(() {
@@ -436,7 +507,7 @@ class _HomePageState extends State<HomePage> {
                         form.total = 0;
 
                         if (!p.hasSizes) {
-                          form.size = variants.first.size;
+                          form.size = variants.first.productSizeId;
                         }
                       });
 
@@ -469,13 +540,13 @@ class _HomePageState extends State<HomePage> {
                 _buildSizes(form)
               else if (form.byGrams)
                 StreamBuilder<List<ProductVariant>>(
-                  stream: database.watchVariants(form.product!.id),
+                  stream: database.watchVariants(form.product!.productId),
                   builder: (context, snapshot) {
                     final variants = snapshot.data ?? [];
                     if (variants.isNotEmpty) {
                       // Asigna el precio por kilo de la variante GRAMOS
                       final gramsVariant = variants.firstWhere(
-                        (v) => v.size == 1,
+                        (v) => v.productSizeId == 1,
                         orElse: () => variants.first,
                       );
                       form.priceByKg = gramsVariant.pricePerKg ?? 0.0;
@@ -538,105 +609,96 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Widget _buildOrderCard(List<Order> orders) {
-    return Column(
-      children: orders.map((order) {
-        return InkWell(
-          onTap: () {
-            _changeProgressStatus(order);
-          },
-          child: Card(
-            color: Colors.white,
-            margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildOrderCard(Order order, int index) {
+    final isFirstPending =
+        selectedStatusFilter == "PENDING" &&
+        order.processStatus == "Pendiente" &&
+        index == 0;
+
+    final displayStatus = isFirstPending
+        ? "En preparación"
+        : order.processStatus;
+
+    return InkWell(
+      onTap: () {
+        _changeProgressStatus(order);
+      },
+      child: Card(
+        color: Colors.white,
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Orden #${order.id}",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-
-                      // Estado
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(order.processStatus),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          order.processStatus,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 6),
-
-                  // Fecha
                   Text(
-                    "Fecha: ${order.createdAt}",
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // Total
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Total",
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      Text(
-                        "\$${order.totalAmount.toStringAsFixed(2)}",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: PuventColors.primaryGreen.color,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // Método de pago (si existe)
-                  if (order.paymentMethod != null)
-                    Text(
-                      "Pago: ${order.paymentMethod}",
-                      style: const TextStyle(fontSize: 12),
+                    "Orden #${order.folio}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(displayStatus),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      displayStatus,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
                 ],
               ),
-            ),
+
+              const SizedBox(height: 6),
+
+              Text(
+                "Fecha: ${order.createdAt}",
+                style: const TextStyle(color: Colors.grey),
+              ),
+
+              const SizedBox(height: 10),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Total"),
+                  Text(
+                    "\$${order.totalAmount.toStringAsFixed(2)}",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: PuventColors.primaryGreen.color,
+                    ),
+                  ),
+                ],
+              ),
+
+              if (order.paymentMethod != null)
+                Text("Pago: ${order.paymentMethod}"),
+            ],
           ),
-        );
-      }).toList(),
+        ),
+      ),
     );
   }
 
   Future<void> _loadUnityPrice(ProductFormModel form) async {
-    final variants = await database.getVariantsByProduct(form.product!.id);
+    final variants = await database.getVariantsByProduct(
+      form.product!.productId,
+    );
 
     final uniqueVariant = variants.firstWhere(
-      (v) => v.size == 1,
+      (v) => v.productSizeId == 1,
       orElse: () => variants.first,
     );
 
@@ -648,7 +710,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildSizes(ProductFormModel form) {
     return StreamBuilder<List<(ProductVariant, ProductSize)>>(
-      stream: database.watchVariantsWithSize(form.product!.id),
+      stream: database.watchVariantsWithSize(form.product!.productId),
       builder: (context, snapshot) {
         final data = snapshot.data ?? [];
 
@@ -660,7 +722,6 @@ class _HomePageState extends State<HomePage> {
         //   form.size = null;
         //   form.unityPrice = 0.0;
         // }
-        
 
         return DropdownButtonFormField<int>(
           //value: data.any((v) => v.size == int.parse(form.size!)) ? form.size : null,
@@ -670,14 +731,15 @@ class _HomePageState extends State<HomePage> {
             final variant = v.$1;
             final size = v.$2;
 
-
             return DropdownMenuItem(
-              value: variant.size,
+              value: variant.productSizeId,
               child: Text("${size.name} - \$${variant.price}"),
             );
           }).toList(),
           onChanged: (v) {
-            final variant = data.firstWhere((element) => element.$1.size == v);
+            final variant = data.firstWhere(
+              (element) => element.$1.productSizeId == v,
+            );
 
             setState(() {
               form.size = v;
@@ -1015,6 +1077,7 @@ class _HomePageState extends State<HomePage> {
         .into(database.orders)
         .insert(
           OrdersCompanion.insert(
+            folio: folio,
             totalAmount: total,
             paymentMethod: drift.Value("Efectivo"),
             processStatus: drift.Value("Pendiente"),
@@ -1039,6 +1102,12 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       productForms.clear();
     });
+
+    //setState(() {}); // Para forzar el rebuild
+
+    // DefaultTabController.of(context).animateTo(1);
+    // generar siguiente folio
+    await _loadFolio();
   }
 
   void _continueSell() {
@@ -1187,7 +1256,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _changeProgressStatus(Order order) {
+  void _changeProgressStatus(Order order) async {
+    final details = await database.getOrderDetails(order.orderId);
+
     showDialog(
       context: context,
       builder: (context) {
@@ -1206,9 +1277,9 @@ class _HomePageState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "Estatus",
+                      "Orden ${order.processStatus}",
                       style: TextStyle(
-                        fontSize: 22,
+                        fontSize: 25,
                         fontWeight: FontWeight.bold,
                         color: PuventColors.primaryGreen.color,
                       ),
@@ -1220,7 +1291,18 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
                 Text(
-                  "Orden ${order.id}",
+                  "Orden ${order.orderId}",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: PuventColors.primaryGreen.color,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Divider(),
+
+                Text(
+                  "Detalles",
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -1228,16 +1310,38 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                Expanded(
+                  child: details.isEmpty
+                      ? const Text("Sin productos")
+                      : ListView.builder(
+                          itemCount: details.length,
+                          itemBuilder: (_, i) {
+                            final item = details[i].$1;
+                            final product = details[i].$2;
+                            final size = details[i].$3;
+
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "x${item.quantity} -${product.name} ${size.name == "UNICO" ? "" : size.name}",
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                Text(
+                                  "\$${item.subtotal.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+                const SizedBox(height: 10),
 
                 Divider(),
-                Text(
-                  "Orden ${order.processStatus}",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: PuventColors.primaryGreen.color,
-                  ),
-                ),
+
                 const SizedBox(height: 15),
 
                 // Botones
@@ -1280,9 +1384,42 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _changeStatus(Order order) async {
-    await (database.update(database.orders)
-          ..where((tbl) => tbl.id.equals(order.id)))
-        .write(OrdersCompanion(processStatus: const drift.Value("Entregado")));
+    await (database.update(
+      database.orders,
+    )..where((tbl) => tbl.orderId.equals(order.orderId))).write(
+      OrdersCompanion(
+        processStatus: const drift.Value("Entregado"),
+        deliveredAt: drift.Value(DateTime.now()),
+      ),
+    );
+  }
+
+  List<Order> filterOrders(List<Order> orders) {
+    List<Order> result = List.from(orders);
+
+    // FILTRAR (por estado)
+    if (selectedStatusFilter == "PENDING") {
+      result = result.where((o) => o.processStatus == "Pendiente").toList();
+    }
+
+    if (selectedStatusFilter == "DELIVERED") {
+      result = result.where((o) => o.processStatus == "Entregado").toList();
+
+      result.sort((a, b) {
+        final aDate = a.deliveredAt ?? DateTime(0);
+        final bDate = b.deliveredAt ?? DateTime(0);
+        return bDate.compareTo(aDate); // más reciente, desde arriba hacia abajo
+      });
+    }
+
+    // ORDENAMOS
+    if (selectedSort == "NEWER" && selectedStatusFilter == "DELIVERED") {
+      result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } else if (selectedSort == "OLDER") {
+      result.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    }
+
+    return result;
   }
 
   // ===================== PEDIDOS =====================
@@ -1291,6 +1428,7 @@ class _HomePageState extends State<HomePage> {
       stream: database.watchOrders(),
       builder: (context, snapshot) {
         final orders = snapshot.data ?? [];
+        final filteredOrders = filterOrders(orders);
 
         return Column(
           children: [
@@ -1302,8 +1440,9 @@ class _HomePageState extends State<HomePage> {
                     color: PuventColors.primaryGreen.color,
                     label: "Lista de Pedidos",
                   ),
+                  _headerPedidos(),
                   Expanded(
-                    child: orders.isEmpty
+                    child: filteredOrders.isEmpty
                         ? Center(
                             child: Text(
                               "Aún no hay pedidos en cola",
@@ -1312,7 +1451,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                           )
-                        : _buildOrdersList(orders),
+                        : _buildOrdersList(filteredOrders),
                   ),
                 ],
               ),
@@ -1320,6 +1459,76 @@ class _HomePageState extends State<HomePage> {
           ],
         );
       },
+    );
+  }
+
+  Widget _headerPedidos() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _filterButton(
+              icon: Icons.history,
+              label: "Todos",
+              isSelected: selectedStatusFilter == "ALL",
+              onTap: () => setState(() => selectedStatusFilter = "ALL"),
+            ),
+            _filterButton(
+              icon: Icons.sell,
+              label: "Pendientes",
+              isSelected: selectedStatusFilter == "PENDING",
+              onTap: () => setState(() => selectedStatusFilter = "PENDING"),
+            ),
+            _filterButton(
+              icon: Icons.sell,
+              label: "Entregados",
+              isSelected: selectedStatusFilter == "DELIVERED",
+              onTap: () => setState(() => selectedStatusFilter = "DELIVERED"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _filterButton({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? PuventColors.primaryGreen.color
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : Colors.grey,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
