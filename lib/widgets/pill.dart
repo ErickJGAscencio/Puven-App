@@ -15,9 +15,7 @@ class Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 15, left: 15, right: 15),
-      child: Container(
+    return Container(
         decoration: BoxDecoration(
           color: color ?? PuventColors.primaryGreen.color,
           borderRadius: BorderRadius.circular(50),
@@ -35,7 +33,6 @@ class Pill extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }

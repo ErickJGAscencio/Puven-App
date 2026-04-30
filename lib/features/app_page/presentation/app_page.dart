@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:localix/data/database.dart';
 import 'package:localix/features/home/presentation/home_page.dart';
 import 'package:localix/features/my_products/presentation/my_products_page.dart';
+import 'package:localix/features/stadistics/statistics_page.dart';
 import 'package:localix/helpers/cash_service.dart';
 import 'package:localix/widgets/app_drawer.dart';
 
@@ -12,6 +13,7 @@ enum PuventColors {
   warningRed,
   neutralGray,
   primaryGreyText,
+  background
 }
 
 extension PuventColorsExtension on PuventColors {
@@ -27,6 +29,8 @@ extension PuventColorsExtension on PuventColors {
         return const Color(0xFF9E9E9E);
       case PuventColors.primaryGreyText:
         return const Color(0xFF6C718F);
+      case PuventColors.background:
+        return const Color(0xffF5F7FA);
     }
   }
 }
@@ -76,16 +80,18 @@ class _AppPageState extends State<AppPage> {
       HomePage(database: database, isCashOpen: isCashOpen),
       HomePage(database: database, isCashOpen: isCashOpen),
       MyProductsPage(database: database),
+      StatisticsPage(),
     ];
 
     return Scaffold(
       extendBodyBehindAppBar: false,
       appBar: AppBar(
         title: Text("Puven"),
-        backgroundColor: Colors.white,
+        backgroundColor: PuventColors.background.color,
         elevation: 0,
         actions: [
-          ElevatedButton(
+          if(currentIndex == 1)
+             ElevatedButton(
             onPressed: () {
               isCashOpen ? _closeCashDialog() : _openCashDialog();
             },

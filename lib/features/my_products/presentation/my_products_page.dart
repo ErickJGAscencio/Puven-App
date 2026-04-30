@@ -4,26 +4,6 @@ import 'package:localix/data/database.dart';
 import 'package:localix/features/app_page/presentation/app_page.dart';
 import 'package:localix/widgets/pill.dart';
 
-class MyProductsPage extends StatefulWidget {
-  final AppDatabase database;
-  const MyProductsPage({super.key, required this.database});
-
-  @override
-  State<MyProductsPage> createState() => _MyProductsPage();
-}
-
-enum ColorLabel {
-  blue('Blue', Colors.blue),
-  pink('Pink', Colors.pink),
-  green('Green', Colors.green),
-  yellow('Orange', Colors.orange),
-  grey('Grey', Colors.grey);
-
-  const ColorLabel(this.label, this.color);
-  final String label;
-  final Color color;
-}
-
 class VariantForm {
   int? sizeId;
   String price;
@@ -31,113 +11,101 @@ class VariantForm {
   VariantForm({this.sizeId, this.price = ""});
 }
 
-class _MyProductsPage extends State<MyProductsPage> {
+class MyProductsPage extends StatefulWidget {
+  final AppDatabase database;
+  const MyProductsPage({super.key, required this.database});
+
+  @override
+  State<MyProductsPage> createState() => _MyProductsPageState();
+}
+
+class _MyProductsPageState extends State<MyProductsPage> {
   late final AppDatabase database;
-  late Future<List<ProductSize>> sizesFuture;
 
   @override
   void initState() {
     super.initState();
     database = widget.database;
-    sizesFuture = database.getAllSizes();
   }
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
-      child: Column(
-        children: [
-          Divider(color: Colors.grey.shade300, height: 1),
-          Container(
-            color: Colors.white,
-            child: TabBar(
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: PuventColors.primaryGreen.color,
-              unselectedLabelColor: Colors.grey,
-              labelStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              tabs: [
-                Tab(text: "Productos", icon: Icon(Icons.inventory)),
-                Tab(text: "Tamaños", icon: Icon(Icons.straighten)),
-              ],
+      child: Container(
+        color: PuventColors.background.color,
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+
+            /// Tabs
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: TabBar(
+                  splashBorderRadius: BorderRadius.circular(30),
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    color: PuventColors.primaryGreen.color,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  dividerColor: Colors.transparent,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.black54,
+                  tabs: const [
+                    Tab(text: "Productos"),
+                    Tab(text: "Tamaños"),
+                  ],
+                ),
+              ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(children: [_productsView(), _sizesView()]),
-          ),
-        ],
+
+            const SizedBox(height: 16),
+
+            Expanded(
+              child: TabBarView(children: [_productsView(), _sizesView()]),
+            ),
+          ],
+        ),
       ),
     );
   }
 
+  // ================= PRODUCTS =================
+
   Widget _productsView() {
     return Padding(
-      padding: EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Pill(
-                      color: PuventColors.primaryGreen.color,
-                      label: "Inventario",
-                    ),
-                    // ElevatedButton.icon(
-                    //   onPressed: _openProductModal,
-                    //   icon: const Icon(Icons.add),
-                    //   label: const Text("Nuevo"),
-                    // ),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(50),
-                      onTap: () {
-                        _openProductModal();
-                      },
-                      splashColor: Colors.white24,
-                      highlightColor: Colors.white10,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: PuventColors.primaryGreen.color,
-                          borderRadius: BorderRadius.circular(50),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 4,
-                              offset: const Offset(2, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.add, color: Colors.white, size: 20),
-                            SizedBox(width: 6),
-                            Text(
-                              "Nuevo",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Expanded(child: _listProducts()),
-              ],
+          /// HEADER
+          Text(
+            "Mis Productos",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
             ),
           ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Pill(color: PuventColors.primaryGreen.color, label: "Inventario"),
+              _addButton(() => _openProductModal()),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Expanded(child: _listProducts()),
         ],
       ),
     );
@@ -145,86 +113,74 @@ class _MyProductsPage extends State<MyProductsPage> {
 
   Widget _sizesView() {
     return Padding(
-      padding: EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Pill(
-                      color: PuventColors.primaryGreen.color,
-                      label: "Tamaños",
-                    ),
-
-                    // ElevatedButton.icon(
-                    //   onPressed: _openSizeModal,
-                    //   icon: const Icon(Icons.add),
-                    //   label: const Text("Nuevo"),
-                    // ),
-                    InkWell(
-                      borderRadius: BorderRadius.circular(50),
-                      onTap: () {
-                        _openSizeModal();
-                      },
-                      splashColor: Colors.white24,
-                      highlightColor: Colors.white10,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: PuventColors.primaryGreen.color,
-                          borderRadius: BorderRadius.circular(50),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 4,
-                              offset: const Offset(2, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: const [
-                            Icon(Icons.add, color: Colors.white, size: 20),
-                            SizedBox(width: 6),
-                            Text(
-                              "Nuevo",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Expanded(child: _listSizes()),
-              ],
+          Text(
+            "Tamaños",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[900],
             ),
           ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Pill(color: PuventColors.primaryGreen.color, label: "Gestión"),
+              _addButton(() => _openSizeModal()),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Expanded(child: _listSizes()),
         ],
       ),
     );
   }
 
+  Widget _addButton(VoidCallback onTap) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(30),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: PuventColors.primaryGreen.color,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.add, color: Colors.white, size: 20),
+            SizedBox(width: 6),
+            Text(
+              "Nuevo",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ================= LISTAS =================
+
   Widget _listProducts() {
     return StreamBuilder<List<Product>>(
       stream: database.watchProducts(),
-      builder: (context, snapshot) {
+      builder: (_, snapshot) {
         final products = snapshot.data ?? [];
+
         if (products.isEmpty) {
-          return const Center(child: Text("No hay productos"));
+          return _emptyState("No hay productos");
         }
 
         return ListView.builder(
@@ -238,43 +194,63 @@ class _MyProductsPage extends State<MyProductsPage> {
   Widget _listSizes() {
     return StreamBuilder<List<ProductSize>>(
       stream: database.watchSizes(),
-      builder: (context, snapshot) {
+      builder: (_, snapshot) {
         final sizes = snapshot.data ?? [];
 
-        final filteredSized = sizes
-            .where((s) => (s.name.toUpperCase() != "UNICO"))
+        final filtered = sizes
+            .where((s) => s.name.toUpperCase() != "UNICO")
             .toList();
 
-        if (filteredSized.isEmpty) {
-          return const Center(child: Text("No hay tamaños"));
+        if (filtered.isEmpty) {
+          return _emptyState("No hay tamaños");
         }
 
         return ListView.builder(
-          itemCount: filteredSized.length,
-          itemBuilder: (_, i) => _productSizeTile(filteredSized[i]),
+          itemCount: filtered.length,
+          itemBuilder: (_, i) => _sizeTile(filtered[i]),
         );
       },
     );
   }
 
+  Widget _emptyState(String text) {
+    return Center(
+      child: Text(text, style: TextStyle(color: Colors.black54)),
+    );
+  }
+
   // ================= TILE =================
+
   Widget _productTile(Product product) {
-    return Card(
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Row(
+        children: [
+          /// ICONO
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: PuventColors.primaryGreen.color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.inventory_2,
+              color: PuventColors.primaryGreen.color,
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          /// INFO
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   product.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -283,72 +259,91 @@ class _MyProductsPage extends State<MyProductsPage> {
                       : product.isByGrams
                       ? "Por gramos"
                       : "Precio fijo",
-                  style: const TextStyle(color: Colors.grey),
+                  style: const TextStyle(color: Colors.black54, fontSize: 13),
                 ),
               ],
             ),
+          ),
 
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () =>
-                      _openProductModal(product: product),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () async {
-                    await database.deleteVariantsByProduct(product.productId);
-                    await database.deleteProduct(product.productId);
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
+          /// ACTIONS
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.black54),
+                onPressed: () => _openProductModal(product: product),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () async {
+                  await database.deleteVariantsByProduct(product.productId);
+                  await database.deleteProduct(product.productId);
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _productSizeTile(ProductSize sizes) {
-    return Card(
-      color: Colors.white,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  sizes.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+  Widget _sizeTile(ProductSize size) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: _cardDecoration(),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: PuventColors.primaryGreen.color.withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
+            child: Icon(
+              Icons.straighten,
+              color: PuventColors.primaryGreen.color,
+            ),
+          ),
 
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => _openSizeModal(size: sizes),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () async {
-                    await database.deleteSize(sizes.productSizeId);
-                  },
-                ),
-              ],
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Text(
+              size.name,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-          ],
-        ),
+          ),
+
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.black54),
+                onPressed: () => _openSizeModal(size: size),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () async {
+                  await database.deleteSize(size.productSizeId);
+                },
+              ),
+            ],
+          ),
+        ],
       ),
+    );
+  }
+
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
     );
   }
 
@@ -679,6 +674,7 @@ class _MyProductsPage extends State<MyProductsPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 16,
@@ -735,10 +731,17 @@ class _MyProductsPage extends State<MyProductsPage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         final name = nameController.text;
+                        final isEditing = size != null; 
 
-                        await database.insertSize(
-                          ProductSizesCompanion(name: drift.Value(name)),
-                        );
+                        if (isEditing) {
+                          await database.updateSize(
+                            ProductSize(productSizeId: size.productSizeId, name: name)
+                          );
+                        } else {
+                          await database.insertSize(
+                            ProductSizesCompanion(name: drift.Value(name)),
+                          );
+                        }
                         Navigator.pop(context);
                       },
                       child: const Text("Guardar"),

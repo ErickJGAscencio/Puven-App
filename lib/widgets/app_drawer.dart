@@ -17,6 +17,7 @@ class AppDrawer extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.only(bottomRight: Radius.circular(40)),
       ),
+      backgroundColor: PuventColors.background.color,
       elevation: 5.0,
       child: Column(
         children: [
