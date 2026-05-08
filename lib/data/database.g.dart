@@ -1527,6 +1527,18 @@ class $OrderItemsTable extends OrderItems
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     orderItemId,
@@ -1537,6 +1549,7 @@ class $OrderItemsTable extends OrderItems
     unitPrice,
     subtotal,
     notes,
+    createdAt,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1610,6 +1623,12 @@ class $OrderItemsTable extends OrderItems
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
     return context;
   }
 
@@ -1651,6 +1670,10 @@ class $OrderItemsTable extends OrderItems
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
     );
   }
 
@@ -1669,6 +1692,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
   final double unitPrice;
   final double subtotal;
   final String? notes;
+  final DateTime createdAt;
   const OrderItem({
     required this.orderItemId,
     required this.orderId,
@@ -1678,6 +1702,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     required this.unitPrice,
     required this.subtotal,
     this.notes,
+    required this.createdAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1696,6 +1721,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
+    map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
 
@@ -1715,6 +1741,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      createdAt: Value(createdAt),
     );
   }
 
@@ -1732,6 +1759,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       unitPrice: serializer.fromJson<double>(json['unitPrice']),
       subtotal: serializer.fromJson<double>(json['subtotal']),
       notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
   @override
@@ -1746,6 +1774,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       'unitPrice': serializer.toJson<double>(unitPrice),
       'subtotal': serializer.toJson<double>(subtotal),
       'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
 
@@ -1758,6 +1787,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     double? unitPrice,
     double? subtotal,
     Value<String?> notes = const Value.absent(),
+    DateTime? createdAt,
   }) => OrderItem(
     orderItemId: orderItemId ?? this.orderItemId,
     orderId: orderId ?? this.orderId,
@@ -1769,6 +1799,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     unitPrice: unitPrice ?? this.unitPrice,
     subtotal: subtotal ?? this.subtotal,
     notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt ?? this.createdAt,
   );
   OrderItem copyWithCompanion(OrderItemsCompanion data) {
     return OrderItem(
@@ -1784,6 +1815,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
       unitPrice: data.unitPrice.present ? data.unitPrice.value : this.unitPrice,
       subtotal: data.subtotal.present ? data.subtotal.value : this.subtotal,
       notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
 
@@ -1797,7 +1829,8 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
           ..write('quantityDecimal: $quantityDecimal, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('subtotal: $subtotal, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
@@ -1812,6 +1845,7 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
     unitPrice,
     subtotal,
     notes,
+    createdAt,
   );
   @override
   bool operator ==(Object other) =>
@@ -1824,7 +1858,8 @@ class OrderItem extends DataClass implements Insertable<OrderItem> {
           other.quantityDecimal == this.quantityDecimal &&
           other.unitPrice == this.unitPrice &&
           other.subtotal == this.subtotal &&
-          other.notes == this.notes);
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt);
 }
 
 class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
@@ -1836,6 +1871,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
   final Value<double> unitPrice;
   final Value<double> subtotal;
   final Value<String?> notes;
+  final Value<DateTime> createdAt;
   const OrderItemsCompanion({
     this.orderItemId = const Value.absent(),
     this.orderId = const Value.absent(),
@@ -1845,6 +1881,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     this.unitPrice = const Value.absent(),
     this.subtotal = const Value.absent(),
     this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
   });
   OrderItemsCompanion.insert({
     this.orderItemId = const Value.absent(),
@@ -1855,6 +1892,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     required double unitPrice,
     required double subtotal,
     this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
   }) : orderId = Value(orderId),
        unitPrice = Value(unitPrice),
        subtotal = Value(subtotal);
@@ -1867,6 +1905,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     Expression<double>? unitPrice,
     Expression<double>? subtotal,
     Expression<String>? notes,
+    Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
       if (orderItemId != null) 'order_item_id': orderItemId,
@@ -1877,6 +1916,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
       if (unitPrice != null) 'unit_price': unitPrice,
       if (subtotal != null) 'subtotal': subtotal,
       if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
     });
   }
 
@@ -1889,6 +1929,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     Value<double>? unitPrice,
     Value<double>? subtotal,
     Value<String?>? notes,
+    Value<DateTime>? createdAt,
   }) {
     return OrderItemsCompanion(
       orderItemId: orderItemId ?? this.orderItemId,
@@ -1899,6 +1940,7 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
       unitPrice: unitPrice ?? this.unitPrice,
       subtotal: subtotal ?? this.subtotal,
       notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
@@ -1929,6 +1971,9 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
     return map;
   }
 
@@ -1942,7 +1987,8 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
           ..write('quantityDecimal: $quantityDecimal, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('subtotal: $subtotal, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
@@ -3397,6 +3443,7 @@ typedef $$OrderItemsTableCreateCompanionBuilder =
       required double unitPrice,
       required double subtotal,
       Value<String?> notes,
+      Value<DateTime> createdAt,
     });
 typedef $$OrderItemsTableUpdateCompanionBuilder =
     OrderItemsCompanion Function({
@@ -3408,6 +3455,7 @@ typedef $$OrderItemsTableUpdateCompanionBuilder =
       Value<double> unitPrice,
       Value<double> subtotal,
       Value<String?> notes,
+      Value<DateTime> createdAt,
     });
 
 final class $$OrderItemsTableReferences
@@ -3491,6 +3539,11 @@ class $$OrderItemsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3580,6 +3633,11 @@ class $$OrderItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$OrdersTableOrderingComposer get orderId {
     final $$OrdersTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3657,6 +3715,9 @@ class $$OrderItemsTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   $$OrdersTableAnnotationComposer get orderId {
     final $$OrdersTableAnnotationComposer composer = $composerBuilder(
@@ -3741,6 +3802,7 @@ class $$OrderItemsTableTableManager
                 Value<double> unitPrice = const Value.absent(),
                 Value<double> subtotal = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
               }) => OrderItemsCompanion(
                 orderItemId: orderItemId,
                 orderId: orderId,
@@ -3750,6 +3812,7 @@ class $$OrderItemsTableTableManager
                 unitPrice: unitPrice,
                 subtotal: subtotal,
                 notes: notes,
+                createdAt: createdAt,
               ),
           createCompanionCallback:
               ({
@@ -3761,6 +3824,7 @@ class $$OrderItemsTableTableManager
                 required double unitPrice,
                 required double subtotal,
                 Value<String?> notes = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
               }) => OrderItemsCompanion.insert(
                 orderItemId: orderItemId,
                 orderId: orderId,
@@ -3770,6 +3834,7 @@ class $$OrderItemsTableTableManager
                 unitPrice: unitPrice,
                 subtotal: subtotal,
                 notes: notes,
+                createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
               .map(

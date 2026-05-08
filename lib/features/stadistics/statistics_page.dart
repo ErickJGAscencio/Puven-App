@@ -18,15 +18,19 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AppDatabase database;
   List<Color> gradientColors = [PuventColors.primaryGreen.color, Colors.blue];
 
-  ChartRange range = ChartRange.week;
+  ChartRange range = ChartRange.day;
   late TabController rangeTabController;
+  late TabController viewTabController;
+
   int touchedIndex = -1;
 
   List<Order> totalOrders = [];
+  List<OrderItemSummary> productsSold = [];
+
   double totalSales = 0.0;
 
   //Daily
@@ -39,7 +43,10 @@ class _StatisticsPageState extends State<StatisticsPage>
   void initState() {
     super.initState();
     database = widget.database;
-    rangeTabController = TabController(length: 3, vsync: this, initialIndex: 1);
+    // Inicializamos el tab y los datos de la tabla
+    rangeTabController = TabController(length: 3, vsync: this, initialIndex: 0);
+    viewTabController = TabController(length: 4, vsync: this, initialIndex: 0);
+    range = ChartRange.day;
 
     // Convierte el timestamp a DateTime
     DateTime now = DateTime.now();
@@ -57,12 +64,13 @@ class _StatisticsPageState extends State<StatisticsPage>
 
     _loadTotalSales();
     _loadTotalOrders();
-    _loadProductsMostSales();
+    _loadSalesByProduct();
   }
 
   @override
   void dispose() {
     rangeTabController.dispose();
+    viewTabController.dispose();
     super.dispose();
   }
 
@@ -90,9 +98,7 @@ class _StatisticsPageState extends State<StatisticsPage>
               const SizedBox(height: 16),
 
               // Filtros
-              DefaultTabController(
-                length: 3,
-                child: Padding(
+               Padding(
                   padding: const EdgeInsets.all(0),
                   child: Container(
                     height: 40,
@@ -118,6 +124,7 @@ class _StatisticsPageState extends State<StatisticsPage>
                         });
                         _loadTotalSales();
                         _loadTotalOrders();
+                        _loadSalesByProduct();
                       },
                       splashBorderRadius: BorderRadius.circular(30),
                       indicator: BoxDecoration(
@@ -136,14 +143,11 @@ class _StatisticsPageState extends State<StatisticsPage>
                       ],
                     ),
                   ),
-                ),
               ),
               const SizedBox(height: 10),
 
               Expanded(
-                child: DefaultTabController(
-                  length: 4,
-                  child: Column(
+                child: Column(
                     children: [
                       Container(
                         decoration: BoxDecoration(
@@ -151,6 +155,14 @@ class _StatisticsPageState extends State<StatisticsPage>
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: TabBar(
+                          controller: viewTabController,
+                          onTap: (value) {
+                            setState(() {
+                              touchedIndex = value;
+                            });
+                            _loadTotalSales();
+                            _loadTotalOrders();
+                          },
                           splashBorderRadius: BorderRadius.circular(30),
                           indicator: BoxDecoration(
                             color: PuventColors.primaryGreen.color,
@@ -174,6 +186,7 @@ class _StatisticsPageState extends State<StatisticsPage>
                         child: Container(
                           color: Colors.transparent,
                           child: TabBarView(
+                              controller: viewTabController,
                             children: [
                               _buildGeneralView(),
                               _buildVentasView(),
@@ -185,7 +198,6 @@ class _StatisticsPageState extends State<StatisticsPage>
                       ),
                     ],
                   ),
-                ),
               ),
             ],
           ),
@@ -244,27 +256,31 @@ class _StatisticsPageState extends State<StatisticsPage>
     });
   }
 
-  Future<void> _loadProductsMostSales() async {
+  Future<void> _loadSalesByProduct() async {
     final now = DateTime.now();
-    List<Order> ttlOrders;
+    List<OrderItemSummary> ttlProducts;
 
     switch (range) {
       case ChartRange.day:
-        ttlOrders = await database.getOrdersByDay(now);
+        ttlProducts = await database.getProductsSoldByDay(now);
         break;
       case ChartRange.week:
-        ttlOrders = await database.getOrdersBetween(
-          weekStart,
-          weekEnd.add(const Duration(days: 1)),
-        );
+        // ttlProducts = await database.getOrdersBetween(
+        //   weekStart,
+        //   weekEnd.add(const Duration(days: 1)),
+        // );
+        ttlProducts = await database.getProductsSoldByBetween(weekStart, weekEnd.add(const Duration(days: 1)));
+
         break;
       case ChartRange.month:
-        ttlOrders = await database.getOrdersByMonth(now.year, now.month);
+        // ttlProducts = await database.getOrdersByMonth(now.year, now.month);
+        ttlProducts = await database.getProductsSoldByMonth(now.year, now.month);
+
         break;
     }
     if (!mounted) return;
     setState(() {
-      totalOrders = ttlOrders;
+      productsSold = ttlProducts;
     });
   }
 
@@ -319,14 +335,40 @@ class _StatisticsPageState extends State<StatisticsPage>
                       ),
                     ),
                     InkWell(
+                      borderRadius: BorderRadius.circular(20),
                       onTap: () {
                         //cambiar el tap
+                        setState(() {
+                          viewTabController.index = 1;
+                        });
                       },
-                      child: Text("Ver todos"),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: PuventColors.primaryGreen.color,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          "Ver todos",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                _cardDetailSale(context, []),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: productsSold.length >= 3 ? 3 : productsSold.length,
+                  itemBuilder: (context, index) {
+                    if (productsSold.isEmpty) return Container();
+                    final item = productsSold[index];
+                    return _cardDetailSale(context, item, index);
+                  },
+                ),
               ]),
             ],
           ),
@@ -356,7 +398,16 @@ class _StatisticsPageState extends State<StatisticsPage>
                 ),
               ],
             ),
-            _cardDetailSale(context, [], showDetails: true),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: productsSold.length,
+              itemBuilder: (context, index) {
+                if (productsSold.isEmpty) return Container();
+                final item = productsSold[index];
+                return _cardDetailSale(context, item, index, showDetails: true);
+              },
+            ),
           ]),
         ],
       ),
@@ -385,7 +436,7 @@ class _StatisticsPageState extends State<StatisticsPage>
                 ),
               ],
             ),
-            _cardDetailSale(context, [], showDetails: true),
+            //     _cardDetailSale(context, [], showDetails: true),
           ]),
         ],
       ),
@@ -764,7 +815,8 @@ class _StatisticsPageState extends State<StatisticsPage>
 
   Widget _cardDetailSale(
     BuildContext context,
-    List<Widget> children, {
+    OrderItemSummary item,
+    int index, {
     bool showDetails = false,
   }) {
     return InkWell(
@@ -789,7 +841,7 @@ class _StatisticsPageState extends State<StatisticsPage>
                         ),
                         padding: EdgeInsetsDirectional.all(5),
                         child: Text(
-                          "#1",
+                          "#${index + 1}",
                           style: TextStyle(
                             color: PuventColors.primaryGreen.color,
                             fontWeight: FontWeight.bold,
@@ -800,14 +852,17 @@ class _StatisticsPageState extends State<StatisticsPage>
                       const SizedBox(width: 10),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [Text("NombreProducto"), Text("3 vendidos")],
+                        children: [
+                          Text('${item.productName}'),
+                          Text("${item.totalQuantity} vendidos"),
+                        ],
                       ),
                     ],
                   ),
                   Row(
                     children: [
                       Text(
-                        "\$17,123.00",
+                        "\$${item.subtotal}",
                         style: TextStyle(
                           color: PuventColors.primaryGreen.color,
                           fontWeight: FontWeight.bold,
@@ -1111,6 +1166,9 @@ class _StatisticsPageState extends State<StatisticsPage>
   }
 
   Widget _mainProductSaleCard() {
+    final item = productsSold.isEmpty ? null : productsSold[0] ;
+    
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1121,6 +1179,13 @@ class _StatisticsPageState extends State<StatisticsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // if(item == null) return Text(
+          //         text: "Aún no hay registros",
+          //         style: const TextStyle(
+          //           color: Color(0xFF876500),
+          //           fontWeight: FontWeight.bold,
+          //         ),
+          //       ),;
           RichText(
             text: TextSpan(
               children: [
@@ -1139,7 +1204,7 @@ class _StatisticsPageState extends State<StatisticsPage>
           ),
           const SizedBox(height: 8),
           Text(
-            "Pizza Pepperoni",
+            "${productsSold[0].productName}",
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -1152,9 +1217,9 @@ class _StatisticsPageState extends State<StatisticsPage>
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    "35",
+                    "${productsSold[0].totalQuantity}",
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 25,
@@ -1175,7 +1240,7 @@ class _StatisticsPageState extends State<StatisticsPage>
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    "\$1,500.00",
+                    "\$${item!.subtotal}",
                     style: TextStyle(
                       color: PuventColors.primaryGreen.color,
                       fontSize: 25,

@@ -11,4 +11,5 @@ class OrderItems extends Table {
   RealColumn get unitPrice => real()();
   RealColumn get subtotal => real()();
   TextColumn get notes => text().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }

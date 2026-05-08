@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      if (from == 8) {
+      if (from == 3) {
         // Definir que hacer al pasar de version X a Y
         //await m.addColumn(products, products.price);
         ////////////////////////////
@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
         // ''');
         // //////////////////
         //         // 1. Añadir la columna en la nueva tabla
-        await m.addColumn(orders, orders.folio);
+        await m.addColumn(orderItems, orderItems.createdAt);
 
         //       // 2. Copiar datos de la columna antigua a la nueva
         //       await customStatement('''
@@ -71,22 +71,17 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 
-
-
-
   // CRUD operations for Products
   Future<int> insertProduct(ProductsCompanion product) =>
       into(products).insert(product);
   Stream<List<Product>> watchProducts() {
     return select(products).watch();
   }
+
   Future<List<Product>> getAllProducts() => select(products).get();
   Future deleteProduct(int id) =>
       (delete(products)..where((tbl) => tbl.productId.equals(id))).go();
   Future updateProduct(Product product) => update(products).replace(product);
-
-
-
 
   // CRUD operations for Variants
   Future<int> insertVariant(ProductVariantsCompanion variant) =>
@@ -98,11 +93,13 @@ class AppDatabase extends _$AppDatabase {
       productVariants,
     )..where((tbl) => tbl.productId.equals(productId))).get();
   }
+
   Stream<List<ProductVariant>> watchVariants(int productId) {
     return (select(
       productVariants,
     )..where((tbl) => tbl.productId.equals(productId))).watch();
   }
+
   Future deleteVariantsByProduct(int productId) => (delete(
     productVariants,
   )..where((tbl) => tbl.productId.equals(productId))).go();
@@ -125,9 +122,6 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
-
-
-
   // CRUD operations for Sizes
   Future<int> insertSize(ProductSizesCompanion size) =>
       into(productSizes).insert(size);
@@ -137,9 +131,6 @@ class AppDatabase extends _$AppDatabase {
       (delete(productSizes)..where((tbl) => tbl.productSizeId.equals(id))).go();
   Future updateSize(ProductSize size) => update(productSizes).replace(size);
 
-
-
-
   // CRUD operations for Orders
   Future<int> insertOrder(OrdersCompanion order) => into(orders).insert(order);
   Stream<List<Order>> watchOrders() => select(orders).watch();
@@ -147,56 +138,140 @@ class AppDatabase extends _$AppDatabase {
   Future deleteOrder(int id) =>
       (delete(orders)..where((tbl) => tbl.orderId.equals(id))).go();
   Future updateOrder(Order order) => update(orders).replace(order);
-  
 
-
-  
   // CRUD for orders rangess
-  Future<List<Order>> getOrdersByDay(DateTime day){
+  Future<List<Order>> getOrdersByDay(DateTime day) {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
 
-    return (select(orders)..where((o) => o.createdAt.isBetweenValues(start, end))).get();
+    return (select(
+      orders,
+    )..where((o) => o.createdAt.isBetweenValues(start, end))).get();
   }
-  Future<List<Order>> getOrdersBetween(DateTime start, DateTime end){
-    return (select(orders)..where((o) => o.createdAt.isBetweenValues(start, end))).get();
+
+  Future<List<Order>> getOrdersBetween(DateTime start, DateTime end) {
+    return (select(
+      orders,
+    )..where((o) => o.createdAt.isBetweenValues(start, end))).get();
   }
-  Future<List<Order>> getOrdersByMonth(int year, int month){
+
+  Future<List<Order>> getOrdersByMonth(int year, int month) {
     final start = DateTime(year, month, 1);
     final end = DateTime(year, month + 1, 1);
 
-    return (select(orders)..where((o) => o.createdAt.isBetweenValues(start, end))).get();
+    return (select(
+      orders,
+    )..where((o) => o.createdAt.isBetweenValues(start, end))).get();
   }
 
-
   // CRUD for products more sales
-  Future<List<Order>> getPByDay(DateTime day){ ///CAMBIAAAAAAAAAAAAAAAAAAAR
+  Future<List<OrderItemSummary>> getProductsSoldByDay(DateTime day) async {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
 
-    return (select(orders)..where((o) => o.createdAt.isBetweenValues(start, end))).get();
+    final results = await customSelect(
+      'SELECT o.variant_id, p.name AS product_name, SUM(quantity) AS total_quantity, SUM(subtotal) AS total_subtotal '
+      'FROM order_items o '
+      'INNER JOIN products p ON p.product_id = o.variant_id '
+      'WHERE o.created_at >= ? AND o.created_at < ? '
+      'GROUP BY o.variant_id, p.name '
+      'ORDER BY total_quantity DESC',
+      variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
+      readsFrom: {orderItems, products},
+    ).get();
+
+    return results.map((row) {
+      return OrderItemSummary(
+        variantId: row.read<int>('variant_id'),
+        productName: row.read<String>('product_name'),
+        totalQuantity: row.read<int>('total_quantity'),
+        subtotal: row.read<double>('total_subtotal'),
+      );
+    }).toList();
   }
 
+  Future<List<OrderItemSummary>> getProductsSoldByBetween(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final results = await customSelect(
+      'SELECT o.variant_id, p.name AS product_name, SUM(quantity) AS total_quantity, SUM(subtotal) AS total_subtotal '
+      'FROM order_items o '
+      'INNER JOIN products p ON p.product_id = o.variant_id '
+      'WHERE o.created_at >= ? AND o.created_at < ? '
+      'GROUP BY o.variant_id, p.name '
+      'ORDER BY total_quantity DESC',
+      variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
+      readsFrom: {orderItems, products},
+    ).get();
 
+    final result =
+        await (selectOnly(orders)
+              ..addColumns([orders.totalAmount.sum()])
+              ..where(orders.createdAt.isBetweenValues(start, end)))
+            .getSingle();
+
+    return results.map((row) {
+      return OrderItemSummary(
+        variantId: row.read<int>('variant_id'),
+        productName: row.read<String>('product_name'),
+        totalQuantity: row.read<int>('total_quantity'),
+        subtotal: row.read<double>('total_subtotal'),
+      );
+    }).toList();
+  }
+
+  Future<List<OrderItemSummary>> getProductsSoldByMonth(int year, int month) async {
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 1);
+
+    final results = await customSelect(
+      'SELECT o.variant_id, p.name AS product_name, SUM(quantity) AS total_quantity, SUM(subtotal) AS total_subtotal '
+      'FROM order_items o '
+      'INNER JOIN products p ON p.product_id = o.variant_id '
+      'WHERE o.created_at >= ? AND o.created_at < ? '
+      'GROUP BY o.variant_id, p.name '
+      'ORDER BY total_quantity DESC',
+      variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
+      readsFrom: {orderItems, products},
+    ).get();
+
+    final result =
+        await (selectOnly(orders)
+              ..addColumns([orders.totalAmount.sum()])
+              ..where(orders.createdAt.isBetweenValues(start, end)))
+            .getSingle();
+
+    return results.map((row) {
+      return OrderItemSummary(
+        variantId: row.read<int>('variant_id'),
+        productName: row.read<String>('product_name'),
+        totalQuantity: row.read<int>('total_quantity'),
+        subtotal: row.read<double>('total_subtotal'),
+      );
+    }).toList();
+  }
 
   // CRUD for sales rangess
   Future<double> getTotalByDay(DateTime day) async {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
 
-    final result = await (selectOnly(orders)
-          ..addColumns([orders.totalAmount.sum()])
-          ..where(orders.createdAt.isBetweenValues(start, end)))
-        .getSingle();
+    final result =
+        await (selectOnly(orders)
+              ..addColumns([orders.totalAmount.sum()])
+              ..where(orders.createdAt.isBetweenValues(start, end)))
+            .getSingle();
 
     return result.read(orders.totalAmount.sum()) ?? 0.0;
   }
 
   Future<double> getTotalByRange(DateTime start, DateTime end) async {
-    final result = await (selectOnly(orders)
-          ..addColumns([orders.totalAmount.sum()])
-          ..where(orders.createdAt.isBetweenValues(start, end)))
-        .getSingle();
+    final result =
+        await (selectOnly(orders)
+              ..addColumns([orders.totalAmount.sum()])
+              ..where(orders.createdAt.isBetweenValues(start, end)))
+            .getSingle();
 
     return result.read(orders.totalAmount.sum()) ?? 0.0;
   }
@@ -205,10 +280,11 @@ class AppDatabase extends _$AppDatabase {
     final start = DateTime(year, month, 1);
     final end = DateTime(year, month + 1, 1);
 
-    final result = await (selectOnly(orders)
-          ..addColumns([orders.totalAmount.sum()])
-          ..where(orders.createdAt.isBetweenValues(start, end)))
-        .getSingle();
+    final result =
+        await (selectOnly(orders)
+              ..addColumns([orders.totalAmount.sum()])
+              ..where(orders.createdAt.isBetweenValues(start, end)))
+            .getSingle();
 
     return result.read(orders.totalAmount.sum()) ?? 0.0;
   }
@@ -232,8 +308,6 @@ class AppDatabase extends _$AppDatabase {
     return created.productSizeId;
   }
 
-
-
   // CRUD operations for Items Order
 
   Future<int> insertOrderItem(OrderItemsCompanion orderItem) =>
@@ -245,6 +319,7 @@ class AppDatabase extends _$AppDatabase {
       orderItems,
     )..where((tbl) => tbl.orderId.equals(orderId))).get();
   }
+
   Future<List<(OrderItem, Product, ProductSize)>> getOrderDetails(
     int orderId,
   ) async {
@@ -273,12 +348,11 @@ class AppDatabase extends _$AppDatabase {
       return (item, product, size);
     }).toList();
   }
+
   Future deleteOrderItem(int id) =>
       (delete(orderItems)..where((tbl) => tbl.orderItemId.equals(id))).go();
   Future updateOrderItem(OrderItem orderItem) =>
       (update(orderItems).replace(orderItem));
-
-
 }
 
 class TotalByHour {
@@ -291,6 +365,19 @@ class TotalByDay {
   final String day;
   final double total;
   TotalByDay({required this.day, required this.total});
+}
+
+class OrderItemSummary {
+  final int variantId;
+  final int totalQuantity;
+  final double subtotal;
+  final String productName;
+  OrderItemSummary({
+    required this.variantId,
+    required this.productName,
+    required this.totalQuantity,
+    required this.subtotal,
+  });
 }
 
 /* Stream<List<(ProductVariant, ProductSize)>> watchVariantsWithSize(
