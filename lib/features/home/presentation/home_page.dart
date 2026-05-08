@@ -484,9 +484,11 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: DropdownButtonFormField<Product>(
+                    isExpanded: true,
                     value: form.product,
                     hint: const Text("Seleccionar producto"),
                     decoration: _inputDecoration("Selecciona producto"),
@@ -520,8 +522,25 @@ class _HomePageState extends State<HomePage> {
                         _loadUnityPrice(form);
                       }
                     },
+
+                    selectedItemBuilder: (context) {
+                      return products.map((p) {
+                        return Tooltip(
+                          message: p.name,
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              p.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        );
+                      }).toList();
+                    },
                   ),
                 ),
+                const SizedBox(width: 5),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red),
                   onPressed: () {
@@ -884,7 +903,7 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(8),
             onTap: () {
               setState(() {
-                if(form.byGrams) return;
+                if (form.byGrams) return;
                 if (form.quantity! > 1) form.quantity = form.quantity! - 1;
                 form.total = _calculateItemTotal(form);
               });
@@ -918,7 +937,7 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(8),
             onTap: () {
               setState(() {
-                if(form.byGrams) return;
+                if (form.byGrams) return;
                 form.quantity = form.quantity! + 1;
                 form.total = _calculateItemTotal(form);
               });
@@ -1102,7 +1121,7 @@ class _HomePageState extends State<HomePage> {
               variantId: drift.Value(item.variantId), // importante
               unitPrice: item.unitPrice,
               subtotal: item.subtotal,
-              quantity: drift.Value(item.quantity)
+              quantity: drift.Value(item.quantity),
             ),
           );
     }
@@ -1127,7 +1146,9 @@ class _HomePageState extends State<HomePage> {
     if (missingVariant) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Selecciona tamaño o variante para todos los productos."),
+          content: Text(
+            "Selecciona tamaño o variante para todos los productos.",
+          ),
         ),
       );
       return;

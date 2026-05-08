@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:localix/data/database.dart';
@@ -21,12 +23,14 @@ class _StatisticsPageState extends State<StatisticsPage>
     with TickerProviderStateMixin {
   late final AppDatabase database;
   List<Color> gradientColors = [PuventColors.primaryGreen.color, Colors.blue];
+  final ScrollController _scrollController = ScrollController();
 
   ChartRange range = ChartRange.day;
   late TabController rangeTabController;
   late TabController viewTabController;
 
   int touchedIndex = -1;
+  late dynamic dataIndexStartChart = {"finded": false, "index": 0.0};
 
   List<Order> totalOrders = [];
   List<OrderItemSummary> productsSold = [];
@@ -43,6 +47,7 @@ class _StatisticsPageState extends State<StatisticsPage>
   void initState() {
     super.initState();
     database = widget.database;
+
     // Inicializamos el tab y los datos de la tabla
     rangeTabController = TabController(length: 3, vsync: this, initialIndex: 0);
     viewTabController = TabController(length: 4, vsync: this, initialIndex: 0);
@@ -65,10 +70,30 @@ class _StatisticsPageState extends State<StatisticsPage>
     _loadTotalSales();
     _loadTotalOrders();
     _loadSalesByProduct();
+
+    // Inicializa la posición del scroll (por ejemplo, al final)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (dataIndexStartChart["finded"]) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _scrollController.animateTo(
+            dataIndexStartChart["index"],
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOut,
+          );
+        });
+      }
+
+      // O para una posición específica:
+      // _scrollController.jumpTo(200.0);
+      // para animarlo:
+      // _scrollController.animateTo(200.0,
+      //     duration: Duration(milliseconds: 500), curve: Curves.easeOut);
+    });
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     rangeTabController.dispose();
     viewTabController.dispose();
     super.dispose();
@@ -98,106 +123,106 @@ class _StatisticsPageState extends State<StatisticsPage>
               const SizedBox(height: 16),
 
               // Filtros
-               Padding(
-                  padding: const EdgeInsets.all(0),
-                  child: Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
+              Padding(
+                padding: const EdgeInsets.all(0),
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: TabBar(
+                    controller: rangeTabController,
+                    onTap: (value) {
+                      setState(() {
+                        switch (value) {
+                          case 0:
+                            range = ChartRange.day;
+                            break;
+                          case 1:
+                            range = ChartRange.week;
+                            break;
+                          case 2:
+                            range = ChartRange.month;
+                            break;
+                        }
+                      });
+                      _loadTotalSales();
+                      _loadTotalOrders();
+                      _loadSalesByProduct();
+                    },
+                    splashBorderRadius: BorderRadius.circular(30),
+                    indicator: BoxDecoration(
+                      color: PuventColors.primaryGreen.color,
                       borderRadius: BorderRadius.circular(30),
                     ),
-                    child: TabBar(
-                      controller: rangeTabController,
-                      onTap: (value) {
-                        setState(() {
-                          switch (value) {
-                            case 0:
-                              range = ChartRange.day;
-                              break;
-                            case 1:
-                              range = ChartRange.week;
-                              break;
-                            case 2:
-                              range = ChartRange.month;
-                              break;
-                          }
-                        });
-                        _loadTotalSales();
-                        _loadTotalOrders();
-                        _loadSalesByProduct();
-                      },
-                      splashBorderRadius: BorderRadius.circular(30),
-                      indicator: BoxDecoration(
-                        color: PuventColors.primaryGreen.color,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      indicatorSize: TabBarIndicatorSize.tab,
-                      dividerColor: Colors.transparent,
-                      labelColor: Colors.white,
-                      unselectedLabelColor: Colors.black54,
-                      unselectedLabelStyle: TextStyle(fontSize: 12),
-                      tabs: const [
-                        Tab(text: "Día"),
-                        Tab(text: "Semana"),
-                        Tab(text: "Mes"),
-                      ],
-                    ),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    dividerColor: Colors.transparent,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.black54,
+                    unselectedLabelStyle: TextStyle(fontSize: 12),
+                    tabs: const [
+                      Tab(text: "Día"),
+                      Tab(text: "Semana"),
+                      Tab(text: "Mes"),
+                    ],
                   ),
+                ),
               ),
               const SizedBox(height: 10),
 
               Expanded(
                 child: Column(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: TabBar(
+                        controller: viewTabController,
+                        onTap: (value) {
+                          setState(() {
+                            touchedIndex = value;
+                          });
+                          _loadTotalSales();
+                          _loadTotalOrders();
+                        },
+                        splashBorderRadius: BorderRadius.circular(30),
+                        indicator: BoxDecoration(
+                          color: PuventColors.primaryGreen.color,
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        child: TabBar(
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        dividerColor: Colors.transparent,
+                        labelColor: Colors.white,
+                        unselectedLabelColor: Colors.black54,
+                        unselectedLabelStyle: const TextStyle(fontSize: 12),
+                        tabs: const [
+                          Tab(text: "Ingresos"),
+                          Tab(text: "Ventas"),
+                          Tab(text: "Reparto"),
+                          Tab(text: "Histórico"),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: Container(
+                        color: Colors.transparent,
+                        child: TabBarView(
                           controller: viewTabController,
-                          onTap: (value) {
-                            setState(() {
-                              touchedIndex = value;
-                            });
-                            _loadTotalSales();
-                            _loadTotalOrders();
-                          },
-                          splashBorderRadius: BorderRadius.circular(30),
-                          indicator: BoxDecoration(
-                            color: PuventColors.primaryGreen.color,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          dividerColor: Colors.transparent,
-                          labelColor: Colors.white,
-                          unselectedLabelColor: Colors.black54,
-                          unselectedLabelStyle: const TextStyle(fontSize: 12),
-                          tabs: const [
-                            Tab(text: "Ingresos"),
-                            Tab(text: "Ventas"),
-                            Tab(text: "Reparto"),
-                            Tab(text: "Histórico"),
+                          children: [
+                            _buildGeneralView(),
+                            _buildVentasView(),
+                            _buildRepartoView(),
+                            _buildHistoricoView(),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child: Container(
-                          color: Colors.transparent,
-                          child: TabBarView(
-                              controller: viewTabController,
-                            children: [
-                              _buildGeneralView(),
-                              _buildVentasView(),
-                              _buildRepartoView(),
-                              _buildHistoricoView(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -269,12 +294,18 @@ class _StatisticsPageState extends State<StatisticsPage>
         //   weekStart,
         //   weekEnd.add(const Duration(days: 1)),
         // );
-        ttlProducts = await database.getProductsSoldByBetween(weekStart, weekEnd.add(const Duration(days: 1)));
+        ttlProducts = await database.getProductsSoldByBetween(
+          weekStart,
+          weekEnd.add(const Duration(days: 1)),
+        );
 
         break;
       case ChartRange.month:
         // ttlProducts = await database.getOrdersByMonth(now.year, now.month);
-        ttlProducts = await database.getProductsSoldByMonth(now.year, now.month);
+        ttlProducts = await database.getProductsSoldByMonth(
+          now.year,
+          now.month,
+        );
 
         break;
     }
@@ -396,6 +427,7 @@ class _StatisticsPageState extends State<StatisticsPage>
                     color: Colors.grey[900],
                   ),
                 ),
+                //Switch(value: true, onChanged: null),
               ],
             ),
             ListView.builder(
@@ -533,6 +565,7 @@ class _StatisticsPageState extends State<StatisticsPage>
               height: 220,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
+                controller: _scrollController,
                 child: SizedBox(
                   width: _getChartWidth(range),
                   child: Padding(
@@ -554,89 +587,91 @@ class _StatisticsPageState extends State<StatisticsPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Distribución por categorias",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            "Distribución de Ganancias por Producto",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          AspectRatio(
-            aspectRatio: 1.3,
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: const Duration(seconds: 2),
-                      builder: (context, value, child) {
-                        return PieChart(
-                          //swapAnimationDuration: const Duration(milliseconds: 800),
-                          //swapAnimationCurve: Curves.easeInOut,
-                          PieChartData(
-                            pieTouchData: PieTouchData(
-                              touchCallback:
-                                  (FlTouchEvent event, pieTouchResponse) {
-                                    setState(() {
-                                      if (!event.isInterestedForInteractions ||
-                                          pieTouchResponse == null ||
-                                          pieTouchResponse.touchedSection ==
-                                              null) {
-                                        touchedIndex = -1;
-                                        return;
-                                      }
-                                      touchedIndex = pieTouchResponse
-                                          .touchedSection!
-                                          .touchedSectionIndex;
-                                    });
-                                  },
-                            ),
-                            borderData: FlBorderData(show: false),
-                            sectionsSpace: 0,
-                            centerSpaceRadius: 40,
-                            sections: showingSections(),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Gráfico circular
+              Expanded(
+                flex: 2,
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(seconds: 2),
+                    builder: (context, value, child) {
+                      return PieChart(
+                        PieChartData(
+                          pieTouchData: PieTouchData(
+                            touchCallback:
+                                (FlTouchEvent event, pieTouchResponse) {
+                                  setState(() {
+                                    if (!event.isInterestedForInteractions ||
+                                        pieTouchResponse == null ||
+                                        pieTouchResponse.touchedSection ==
+                                            null) {
+                                      touchedIndex = -1;
+                                      return;
+                                    }
+                                    touchedIndex = pieTouchResponse
+                                        .touchedSection!
+                                        .touchedSectionIndex;
+                                  });
+                                },
                           ),
-                        );
-                      },
-                    ),
+                          borderData: FlBorderData(show: false),
+                          sectionsSpace: 2,
+                          centerSpaceRadius: 40,
+                          sections: showingSections(),
+                        ),
+                      );
+                    },
                   ),
                 ),
-                const Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
+              ),
+              const SizedBox(width: 24),
+              // Leyenda dinámica con soprote para nombres largos
+              Expanded(
+                flex: 2,
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Indicator(
-                      color: Colors.blue,
-                      text: 'Producto_1',
-                      isSquare: true,
-                    ),
-                    SizedBox(height: 4),
-                    Indicator(
-                      color: Colors.amber,
-                      text: 'Producto_2',
-                      isSquare: true,
-                    ),
-                    SizedBox(height: 4),
-                    Indicator(
-                      color: Colors.purple,
-                      text: 'Producto_3',
-                      isSquare: true,
-                    ),
-                    SizedBox(height: 4),
-                    Indicator(
-                      color: Colors.green,
-                      text: 'Producto_4',
-                      isSquare: true,
-                    ),
-                    SizedBox(height: 18),
-                  ],
+                  children: List.generate(productsSold.length, (i) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        children: [
+                          Indicator(
+                            color: chartColors[i % chartColors.length],
+                            text: "", // dejamos vacío porque el texto va aparte
+                            isSquare: true,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              productsSold[i].productName,
+                              style: const TextStyle(fontSize: 14),
+                              overflow: TextOverflow.visible, // wrap automático
+                              softWrap: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                 ),
-                const SizedBox(width: 28),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -823,7 +858,7 @@ class _StatisticsPageState extends State<StatisticsPage>
       onTap: showDetails ? () {} : null,
       child: Card(
         elevation: 0.5,
-        color: showDetails ? Color(0xFFF7FFFC) : Colors.white,
+        color: showDetails ? const Color(0xFFF7FFFC) : Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -832,33 +867,47 @@ class _StatisticsPageState extends State<StatisticsPage>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Color.fromARGB(208, 173, 233, 207),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: EdgeInsetsDirectional.all(5),
-                        child: Text(
-                          "#${index + 1}",
-                          style: TextStyle(
-                            color: PuventColors.primaryGreen.color,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17,
+                  // Bloque con índice y nombre
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(208, 173, 233, 207),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.all(5),
+                          child: Text(
+                            "#${index + 1}",
+                            style: TextStyle(
+                              color: PuventColors.primaryGreen.color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 17,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${item.productName}'),
-                          Text("${item.totalQuantity} vendidos"),
-                        ],
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.productName,
+                                style: const TextStyle(fontSize: 14),
+                                maxLines: 2, // máximo dos líneas
+                                overflow:
+                                    TextOverflow.ellipsis, // corta con "..."
+                                softWrap: true,
+                              ),
+                              Text("${item.totalQuantity} vendidos"),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+
+                  // Bloque con subtotal y flecha
                   Row(
                     children: [
                       Text(
@@ -981,6 +1030,8 @@ class _StatisticsPageState extends State<StatisticsPage>
   }
 
   List<FlSpot> _getChartData(ChartRange range) {
+    // final scale = chartWidth / data.length;
+
     switch (range) {
       case ChartRange.day:
         final Map<int, double> hourlyTotals = {};
@@ -992,6 +1043,13 @@ class _StatisticsPageState extends State<StatisticsPage>
         }
 
         return List.generate(24, (hour) {
+          final y = hourlyTotals[hour] ?? 0;
+          
+          if (!dataIndexStartChart["finded"] && y > 0) {
+            dataIndexStartChart["finded"] = true;
+            dataIndexStartChart["index"] = hour * 50.0; // escala aproximada
+          }
+
           return FlSpot(hour.toDouble(), hourlyTotals[hour] ?? 0);
         });
 
@@ -1125,7 +1183,7 @@ class _StatisticsPageState extends State<StatisticsPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                "Ventas Totales",
+                "Ingresos Totales",
                 style: TextStyle(color: Colors.white70),
               ),
               const SizedBox(height: 6),
@@ -1166,8 +1224,25 @@ class _StatisticsPageState extends State<StatisticsPage>
   }
 
   Widget _mainProductSaleCard() {
-    final item = productsSold.isEmpty ? null : productsSold[0] ;
-    
+    if (productsSold.isEmpty || productsSold[0] == null) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color.fromARGB(255, 255, 230, 154)),
+          color: const Color.fromARGB(255, 255, 250, 235),
+        ),
+        child: const Text(
+          "Aún no hay registros",
+          style: TextStyle(
+            color: Color(0xFF876500),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
+
+    final item = productsSold[0];
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1179,13 +1254,6 @@ class _StatisticsPageState extends State<StatisticsPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // if(item == null) return Text(
-          //         text: "Aún no hay registros",
-          //         style: const TextStyle(
-          //           color: Color(0xFF876500),
-          //           fontWeight: FontWeight.bold,
-          //         ),
-          //       ),;
           RichText(
             text: TextSpan(
               children: [
@@ -1355,63 +1423,43 @@ class _StatisticsPageState extends State<StatisticsPage>
     );
   }
 
+  final List<Color> chartColors = [
+    Colors.blue,
+    Colors.amber,
+    Colors.purple,
+    Colors.green,
+    Colors.red,
+    Colors.teal,
+  ];
+
   List<PieChartSectionData> showingSections() {
-    return List.generate(4, (i) {
+    final total = productsSold.fold<double>(
+      0,
+      (sum, item) => sum + item.subtotal,
+    );
+
+    return List.generate(productsSold.length, (i) {
       final isTouched = i == touchedIndex;
       final fontSize = isTouched ? 25.0 : 16.0;
       final radius = isTouched ? 60.0 : 50.0;
       const shadows = [Shadow(color: Colors.black, blurRadius: 2)];
-      return switch (i) {
-        0 => PieChartSectionData(
-          color: Colors.blue,
-          value: 40,
-          title: '40%',
-          radius: radius,
-          titleStyle: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.black54,
-            shadows: shadows,
-          ),
+
+      final item = productsSold[i];
+      final value = item.subtotal;
+      final percentage = total == 0 ? 0 : (value / total * 100);
+
+      return PieChartSectionData(
+        color: chartColors[i % chartColors.length], // asigna color fijo
+        value: value,
+        title: isTouched ? "${percentage.toStringAsFixed(1)}%" : "",
+        radius: radius,
+        titleStyle: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+          color: Colors.black54,
+          shadows: shadows,
         ),
-        1 => PieChartSectionData(
-          color: Colors.amber,
-          value: 30,
-          title: '30%',
-          radius: radius,
-          titleStyle: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.black54,
-            shadows: shadows,
-          ),
-        ),
-        2 => PieChartSectionData(
-          color: Colors.purple,
-          value: 15,
-          title: '15%',
-          radius: radius,
-          titleStyle: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.black54,
-            shadows: shadows,
-          ),
-        ),
-        3 => PieChartSectionData(
-          color: Colors.green,
-          value: 15,
-          title: '15%',
-          radius: radius,
-          titleStyle: TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.black54,
-            shadows: shadows,
-          ),
-        ),
-        _ => throw StateError('Invalid'),
-      };
+      );
     });
   }
 
