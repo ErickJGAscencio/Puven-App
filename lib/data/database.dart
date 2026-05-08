@@ -40,8 +40,8 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
 
         // Insertar tamaño "Único"
-       // await into(
-       //   productSizes,
+        // await into(
+        //   productSizes,
         //).insert(ProductSizesCompanion.insert(name: "UNICO"));
 
         ///////////////////////
@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
         // ''');
         // //////////////////
         //         // 1. Añadir la columna en la nueva tabla
-               await m.addColumn(orders, orders.folio);
+        await m.addColumn(orders, orders.folio);
 
         //       // 2. Copiar datos de la columna antigua a la nueva
         //       await customStatement('''
@@ -71,47 +71,43 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 
+
+
+
   // CRUD operations for Products
   Future<int> insertProduct(ProductsCompanion product) =>
       into(products).insert(product);
-
   Stream<List<Product>> watchProducts() {
     return select(products).watch();
   }
-
   Future<List<Product>> getAllProducts() => select(products).get();
-
   Future deleteProduct(int id) =>
       (delete(products)..where((tbl) => tbl.productId.equals(id))).go();
-
   Future updateProduct(Product product) => update(products).replace(product);
 
-  // CRUD operations for VAriants
+
+
+
+  // CRUD operations for Variants
   Future<int> insertVariant(ProductVariantsCompanion variant) =>
       into(productVariants).insert(variant);
-
   Future<List<ProductVariant>> getAllVariants() =>
       select(productVariants).get();
-
   Future<List<ProductVariant>> getVariantsByProduct(int productId) {
     return (select(
       productVariants,
     )..where((tbl) => tbl.productId.equals(productId))).get();
   }
-
   Stream<List<ProductVariant>> watchVariants(int productId) {
     return (select(
       productVariants,
     )..where((tbl) => tbl.productId.equals(productId))).watch();
   }
-
   Future deleteVariantsByProduct(int productId) => (delete(
     productVariants,
   )..where((tbl) => tbl.productId.equals(productId))).go();
-
   Future updateVariant(ProductVariant variant) =>
       update(productVariants).replace(variant);
-
   Stream<List<(ProductVariant, ProductSize)>> watchVariantsWithSize(
     int productId,
   ) {
@@ -129,30 +125,93 @@ class AppDatabase extends _$AppDatabase {
     });
   }
 
+
+
+
   // CRUD operations for Sizes
   Future<int> insertSize(ProductSizesCompanion size) =>
       into(productSizes).insert(size);
-
   Stream<List<ProductSize>> watchSizes() => select(productSizes).watch();
-
   Future<List<ProductSize>> getAllSizes() => select(productSizes).get();
-
   Future deleteSize(int id) =>
       (delete(productSizes)..where((tbl) => tbl.productSizeId.equals(id))).go();
-
   Future updateSize(ProductSize size) => update(productSizes).replace(size);
+
+
+
 
   // CRUD operations for Orders
   Future<int> insertOrder(OrdersCompanion order) => into(orders).insert(order);
-
   Stream<List<Order>> watchOrders() => select(orders).watch();
-
   Future<List<Order>> getAllOrders() => select(orders).get();
-
   Future deleteOrder(int id) =>
       (delete(orders)..where((tbl) => tbl.orderId.equals(id))).go();
-
   Future updateOrder(Order order) => update(orders).replace(order);
+  
+
+
+  
+  // CRUD for orders rangess
+  Future<List<Order>> getOrdersByDay(DateTime day){
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+
+    return (select(orders)..where((o) => o.createdAt.isBetweenValues(start, end))).get();
+  }
+  Future<List<Order>> getOrdersBetween(DateTime start, DateTime end){
+    return (select(orders)..where((o) => o.createdAt.isBetweenValues(start, end))).get();
+  }
+  Future<List<Order>> getOrdersByMonth(int year, int month){
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 1);
+
+    return (select(orders)..where((o) => o.createdAt.isBetweenValues(start, end))).get();
+  }
+
+
+  // CRUD for products more sales
+  Future<List<Order>> getPByDay(DateTime day){ ///CAMBIAAAAAAAAAAAAAAAAAAAR
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+
+    return (select(orders)..where((o) => o.createdAt.isBetweenValues(start, end))).get();
+  }
+
+
+
+  // CRUD for sales rangess
+  Future<double> getTotalByDay(DateTime day) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+
+    final result = await (selectOnly(orders)
+          ..addColumns([orders.totalAmount.sum()])
+          ..where(orders.createdAt.isBetweenValues(start, end)))
+        .getSingle();
+
+    return result.read(orders.totalAmount.sum()) ?? 0.0;
+  }
+
+  Future<double> getTotalByRange(DateTime start, DateTime end) async {
+    final result = await (selectOnly(orders)
+          ..addColumns([orders.totalAmount.sum()])
+          ..where(orders.createdAt.isBetweenValues(start, end)))
+        .getSingle();
+
+    return result.read(orders.totalAmount.sum()) ?? 0.0;
+  }
+
+  Future<double> getTotalByMonth(int year, int month) async {
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 1);
+
+    final result = await (selectOnly(orders)
+          ..addColumns([orders.totalAmount.sum()])
+          ..where(orders.createdAt.isBetweenValues(start, end)))
+        .getSingle();
+
+    return result.read(orders.totalAmount.sum()) ?? 0.0;
+  }
 
   Future<int> getUniqueSizeId() async {
     final existing = await (select(
@@ -173,21 +232,19 @@ class AppDatabase extends _$AppDatabase {
     return created.productSizeId;
   }
 
+
+
   // CRUD operations for Items Order
 
   Future<int> insertOrderItem(OrderItemsCompanion orderItem) =>
       into(orderItems).insert(orderItem);
-
   Stream<List<OrderItem>> watchOrderItems() => select(orderItems).watch();
-
   Future<List<OrderItem>> getAllOrderItems() => select(orderItems).get();
-
   Future<List<OrderItem>> getAllOrderItemsByOrder(int orderId) {
     return (select(
       orderItems,
     )..where((tbl) => tbl.orderId.equals(orderId))).get();
   }
-
   Future<List<(OrderItem, Product, ProductSize)>> getOrderDetails(
     int orderId,
   ) async {
@@ -206,7 +263,7 @@ class AppDatabase extends _$AppDatabase {
       ),
     ])..where(orderItems.orderId.equals(orderId));
 
-    final rows = await query.get(); 
+    final rows = await query.get();
 
     return rows.map((row) {
       final item = row.readTable(orderItems);
@@ -216,12 +273,24 @@ class AppDatabase extends _$AppDatabase {
       return (item, product, size);
     }).toList();
   }
-
   Future deleteOrderItem(int id) =>
       (delete(orderItems)..where((tbl) => tbl.orderItemId.equals(id))).go();
-
   Future updateOrderItem(OrderItem orderItem) =>
       (update(orderItems).replace(orderItem));
+
+
+}
+
+class TotalByHour {
+  final int hour;
+  final double total;
+  TotalByHour({required this.hour, required this.total});
+}
+
+class TotalByDay {
+  final String day;
+  final double total;
+  TotalByDay({required this.day, required this.total});
 }
 
 /* Stream<List<(ProductVariant, ProductSize)>> watchVariantsWithSize(

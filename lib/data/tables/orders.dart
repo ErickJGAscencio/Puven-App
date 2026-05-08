@@ -4,7 +4,7 @@ class Orders extends Table {
   IntColumn get orderId => integer().autoIncrement()();
   TextColumn get folio => text()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
-  RealColumn get totalAmount => real()();
+  RealColumn get totalAmount => real()(); 
   // Status del proceso dle pedido
     /*
       Pendiente

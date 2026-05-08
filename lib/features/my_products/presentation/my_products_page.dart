@@ -47,6 +47,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: TabBar(
+                  key: ValueKey("tabs"),
                   splashBorderRadius: BorderRadius.circular(30),
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: BoxDecoration(
@@ -56,6 +57,10 @@ class _MyProductsPageState extends State<MyProductsPage> {
                   dividerColor: Colors.transparent,
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.black54,
+                  labelStyle: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                   tabs: const [
                     Tab(text: "Productos"),
                     Tab(text: "Tamaños"),

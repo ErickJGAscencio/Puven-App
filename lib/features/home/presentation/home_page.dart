@@ -12,22 +12,24 @@ class ProductFormModel {
   final String id = UniqueKey().toString();
   Product? product;
   int? size;
+  int? variantId;
   double grams;
   bool byGrams;
   double priceByKg;
   double unityPrice;
-  int quantity;
+  int? quantity;
   bool? optionBuy;
   double total = 0.0;
 
   ProductFormModel({
     this.product,
     this.size,
+    this.variantId,
     this.grams = 0.0,
     this.byGrams = false,
     this.priceByKg = 0.0,
     this.unityPrice = 0.0,
-    this.quantity = 1,
+    this.quantity,
     this.optionBuy = false,
     this.total = 0.0,
   });
@@ -102,30 +104,49 @@ class _HomePageState extends State<HomePage> {
       children: [
         DefaultTabController(
           length: 2,
-          child: Column(
-            children: [
-              Divider(color: Colors.grey.shade300, height: 1),
-              Container(
-                color: Colors.white,
-                child: TabBar(
-                  key: ValueKey("tabs"),
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  labelColor: PuventColors.primaryGreen.color,
-                  unselectedLabelColor: Colors.grey,
-                  labelStyle: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+          child: Container(
+            color: PuventColors.background.color,
+            child: Column(
+              children: [
+                const SizedBox(height: 10),
+
+                Padding(
+                  padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: TabBar(
+                      key: ValueKey("tabs"),
+                      splashBorderRadius: BorderRadius.circular(30),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicator: BoxDecoration(
+                        color: PuventColors.primaryGreen.color,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      dividerColor: Colors.transparent,
+                      labelColor: Colors.white,
+                      unselectedLabelColor: Colors.black54,
+                      labelStyle: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      tabs: const [
+                        Tab(text: "Punto"),
+                        Tab(text: "Pedidos"),
+                      ],
+                    ),
                   ),
-                  tabs: [
-                    Tab(text: "Punto", icon: Icon(Icons.point_of_sale)),
-                    Tab(text: "Pedidos", icon: Icon(Icons.list_alt)),
-                  ],
                 ),
-              ),
-              Expanded(
-                child: TabBarView(children: [_ventaView(), _pedidosView()]),
-              ),
-            ],
+
+                const SizedBox(height: 16),
+
+                Expanded(
+                  child: TabBarView(children: [_ventaView(), _pedidosView()]),
+                ),
+              ],
+            ),
           ),
         ),
         if (!widget.isCashOpen)
@@ -170,10 +191,6 @@ class _HomePageState extends State<HomePage> {
     return StreamBuilder<List<Product>>(
       stream: database.watchProducts(),
       builder: (context, snapshot) {
-        /* if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }*/
-
         if (snapshot.hasError) {
           return Center(child: Text("Error: ${snapshot.error}"));
         }
@@ -182,30 +199,34 @@ class _HomePageState extends State<HomePage> {
         return Column(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Pill(
-                    color: PuventColors.primaryGreen.color,
-                    label: "Punto de Venta",
-                  ),
-                  _headerVenta(),
-                  Expanded(
-                    child: productForms.isEmpty
-                        ? Center(
-                            child: Text(
-                              "Agrege '+' un producto por a la lista",
-                              style: TextStyle(
-                                color: PuventColors.primaryGreyText.color,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Pill(
+                      color: PuventColors.primaryGreen.color,
+                      label: "Punto de Venta",
+                    ),
+                    _headerVenta(),
+                    Expanded(
+                      child: productForms.isEmpty
+                          ? Center(
+                              child: Text(
+                                "Agregue '+' un producto a la lista",
+                                style: TextStyle(
+                                  color: PuventColors.primaryGreyText.color,
+                                ),
                               ),
-                            ),
-                          )
-                        : _buildFormList(products),
-                  ),
-                ],
+                            )
+                          : _buildFormList(products),
+                    ),
+                  ],
+                ),
               ),
             ),
-            _footerSection(),
+            // Footer fuera del Padding para ocupar todo el ancho
+            _footerSection(context),
           ],
         );
       },
@@ -222,7 +243,8 @@ class _HomePageState extends State<HomePage> {
 
   Widget _headerVenta() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -330,43 +352,44 @@ class _HomePageState extends State<HomePage> {
 
   // ===================== LISTAS =====================
   Widget _buildFormList(List<Product> products) {
-    return Padding(
-      padding: EdgeInsets.all(12),
-      child: ListView.builder(
-        itemCount: productForms.length,
-        itemBuilder: (context, index) {
-          return _buildForm(index, products);
-        },
-      ),
+    return ListView.builder(
+      itemCount: productForms.length,
+      itemBuilder: (context, index) {
+        return _buildForm(index, products);
+      },
     );
   }
 
   Widget _buildOrdersList(List<Order> orders) {
-    return Padding(
-      padding: EdgeInsets.all(12),
-      child: ListView.builder(
-        itemCount: orders.length,
-        itemBuilder: (context, index) {
-          final order = orders[index];
-          return _buildOrderCard(order, index);
-        },
-      ),
+    return ListView.builder(
+      itemCount: orders.length,
+      itemBuilder: (context, index) {
+        final order = orders[index];
+        return _buildOrderCard(order, index);
+      },
     );
   }
 
-  Widget _footerSection() {
+  Widget _footerSection(BuildContext context) {
     final total = productForms.fold(
       0.0,
       (sum, form) => sum + _calculateItemTotal(form),
     );
 
+    void _showError(String message) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: const Border(top: BorderSide(color: Colors.green, width: 1)),
+        border: Border(top: BorderSide(color: Color(0xFF58BDD1), width: 1)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -385,82 +408,58 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 25),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              InkWell(
-                onTap: () {
-                  if (productForms.isNotEmpty) {
-                    ProductFormModel firstForm = productForms.first;
-                    if (firstForm.product == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Para continuar debe seleccionar un producto.",
-                          ),
-                        ),
-                      );
-                      return;
-                    } else if (firstForm.total.abs() < 0.0001) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "El total del producto no puede ser \$0.0",
-                          ),
-                        ),
-                      );
-                      return;
-                    } else if (total.abs() < 0.0001) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Para continuar el total general no puede ser \$0.0",
-                          ),
-                        ),
-                      );
-                      return;
-                    } else {
-                      _continueSell();
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Para continuar debe haber un producto en la lista.",
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                },
-                borderRadius: BorderRadius.circular(50),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 25,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: PuventColors.primaryGreen.color,
-                    borderRadius: BorderRadius.circular(50),
-                    boxShadow: [
-                      BoxShadow(
-                        color: PuventColors.primaryGreen.color.withOpacity(0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const Text(
-                    "Continuar",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+          Align(
+            alignment: Alignment.centerRight,
+            child: InkWell(
+              onTap: () {
+                if (productForms.isEmpty) {
+                  _showError("Debe haber al menos un producto en la lista.");
+                  return;
+                }
+
+                final firstForm = productForms.first;
+                if (firstForm.product == null) {
+                  _showError("Debe seleccionar un producto.");
+                  return;
+                }
+                if (firstForm.total.abs() < 0.0001) {
+                  _showError("El total del producto no puede ser \$0.0");
+                  return;
+                }
+                if (total.abs() < 0.0001) {
+                  _showError("El total general no puede ser \$0.0");
+                  return;
+                }
+
+                _continueSell();
+              },
+              borderRadius: BorderRadius.circular(50),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: PuventColors.primaryGreen.color,
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: [
+                    BoxShadow(
+                      color: PuventColors.primaryGreen.color.withOpacity(0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
                     ),
+                  ],
+                ),
+                child: const Text(
+                  "Continuar",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),
@@ -471,8 +470,13 @@ class _HomePageState extends State<HomePage> {
   Widget _buildForm(int index, List<Product> products) {
     final form = productForms[index];
 
-    return Card(
-      color: Colors.white,
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
@@ -485,6 +489,7 @@ class _HomePageState extends State<HomePage> {
                   child: DropdownButtonFormField<Product>(
                     value: form.product,
                     hint: const Text("Seleccionar producto"),
+                    decoration: _inputDecoration("Selecciona producto"),
                     items: products.map((p) {
                       return DropdownMenuItem(value: p, child: Text(p.name));
                     }).toList(),
@@ -549,6 +554,7 @@ class _HomePageState extends State<HomePage> {
                         orElse: () => variants.first,
                       );
                       form.priceByKg = gramsVariant.pricePerKg ?? 0.0;
+                      form.variantId = gramsVariant.productVariantId;
                     }
 
                     return _buildGrams(form, index);
@@ -703,6 +709,7 @@ class _HomePageState extends State<HomePage> {
 
     setState(() {
       form.unityPrice = uniqueVariant.price ?? 0.0;
+      form.variantId = uniqueVariant.productVariantId;
       form.total = _calculateItemTotal(form);
     });
   }
@@ -735,6 +742,7 @@ class _HomePageState extends State<HomePage> {
               child: Text("${size.name} - \$${variant.price}"),
             );
           }).toList(),
+          decoration: _inputDecoration(""),
           onChanged: (v) {
             final variant = data.firstWhere(
               (element) => element.$1.productSizeId == v,
@@ -743,6 +751,7 @@ class _HomePageState extends State<HomePage> {
             setState(() {
               form.size = v;
               form.unityPrice = variant.$1.price!;
+              form.variantId = variant.$1.productVariantId;
               form.total = _calculateItemTotal(form);
             });
           },
@@ -787,9 +796,7 @@ class _HomePageState extends State<HomePage> {
                 controller: controller,
                 focusNode: focusNode,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: optionBuy ? "Pesos" : "Gramos",
-                ),
+                decoration: _inputDecoration(optionBuy ? "Pesos" : "Gramos"),
                 onChanged: (v) {
                   setState(() {
                     form.grams = formatGrams(v);
@@ -877,7 +884,8 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(8),
             onTap: () {
               setState(() {
-                if (form.quantity > 1) form.quantity--;
+                if(form.byGrams) return;
+                if (form.quantity! > 1) form.quantity = form.quantity! - 1;
                 form.total = _calculateItemTotal(form);
               });
             },
@@ -910,7 +918,8 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(8),
             onTap: () {
               setState(() {
-                form.quantity++;
+                if(form.byGrams) return;
+                form.quantity = form.quantity! + 1;
                 form.total = _calculateItemTotal(form);
               });
             },
@@ -939,7 +948,7 @@ class _HomePageState extends State<HomePage> {
           : form.grams * (form.priceByKg / 1000);
     }
 
-    return form.unityPrice * form.quantity;
+    return form.unityPrice * form.quantity!;
   }
 
   void _openPaymentDialog(List<OrderItem> items, double total) {
@@ -996,7 +1005,7 @@ class _HomePageState extends State<HomePage> {
                     TextField(
                       controller: paidController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: "Recibido"),
+                      decoration: _inputDecoration("Recibido"),
                       onChanged: (value) {
                         final paid = double.tryParse(value) ?? 0;
                         setState(() {
@@ -1093,6 +1102,7 @@ class _HomePageState extends State<HomePage> {
               variantId: drift.Value(item.variantId), // importante
               unitPrice: item.unitPrice,
               subtotal: item.subtotal,
+              quantity: drift.Value(item.quantity)
             ),
           );
     }
@@ -1110,14 +1120,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _continueSell() {
+    final missingVariant = productForms.any(
+      (p) => p.product != null && p.variantId == null,
+    );
+
+    if (missingVariant) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Selecciona tamaño o variante para todos los productos."),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) {
         final orderItems = productForms.map((p) {
           return OrderItem(
-            variantId: p.size!,
+            variantId: p.variantId!,
             name: p.product!.name,
-            quantity: p.quantity,
+            quantity: p.quantity ?? 1,
             unitPrice: p.unityPrice == 0 ? p.total : p.unityPrice,
           );
         }).toList();
@@ -1423,47 +1446,50 @@ class _HomePageState extends State<HomePage> {
 
   // ===================== PEDIDOS =====================
   Widget _pedidosView() {
-    return StreamBuilder<List<Order>>(
-      stream: database.watchOrders(),
-      builder: (context, snapshot) {
-        final orders = snapshot.data ?? [];
-        final filteredOrders = filterOrders(orders);
+    return Padding(
+      padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
+      child: StreamBuilder<List<Order>>(
+        stream: database.watchOrders(),
+        builder: (context, snapshot) {
+          final orders = snapshot.data ?? [];
+          final filteredOrders = filterOrders(orders);
 
-        return Column(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Pill(
-                    color: PuventColors.primaryGreen.color,
-                    label: "Lista de Pedidos",
-                  ),
-                  _headerPedidos(),
-                  Expanded(
-                    child: filteredOrders.isEmpty
-                        ? Center(
-                            child: Text(
-                              "Aún no hay pedidos en cola",
-                              style: TextStyle(
-                                color: PuventColors.primaryGreyText.color,
+          return Column(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Pill(
+                      color: PuventColors.primaryGreen.color,
+                      label: "Lista de Pedidos",
+                    ),
+                    _headerPedidos(),
+                    Expanded(
+                      child: filteredOrders.isEmpty
+                          ? Center(
+                              child: Text(
+                                "Aún no hay pedidos en cola",
+                                style: TextStyle(
+                                  color: PuventColors.primaryGreyText.color,
+                                ),
                               ),
-                            ),
-                          )
-                        : _buildOrdersList(filteredOrders),
-                  ),
-                ],
+                            )
+                          : _buildOrdersList(filteredOrders),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 
   Widget _headerPedidos() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -1526,6 +1552,29 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Colors.blueGrey, // color del borde cuando no está enfocado
+          width: 1.5,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: Colors.blue, // color del borde cuando el campo está enfocado
+          width: 2,
         ),
       ),
     );

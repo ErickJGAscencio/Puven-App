@@ -80,7 +80,7 @@ class _AppPageState extends State<AppPage> {
       HomePage(database: database, isCashOpen: isCashOpen),
       HomePage(database: database, isCashOpen: isCashOpen),
       MyProductsPage(database: database),
-      StatisticsPage(),
+      StatisticsPage(database: database),
     ];
 
     return Scaffold(
