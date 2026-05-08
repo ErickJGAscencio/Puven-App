@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:localix/data/database.dart';
 import 'package:localix/features/home/presentation/home_page.dart';
 import 'package:localix/features/my_products/presentation/my_products_page.dart';
+import 'package:localix/features/sales_history/presentation/sales_history_page.dart';
 import 'package:localix/features/stadistics/statistics_page.dart';
 import 'package:localix/helpers/cash_service.dart';
 import 'package:localix/widgets/app_drawer.dart';
@@ -81,6 +82,7 @@ class _AppPageState extends State<AppPage> {
       HomePage(database: database, isCashOpen: isCashOpen),
       MyProductsPage(database: database),
       StatisticsPage(database: database),
+      SalesHistoryPage(),
     ];
 
     return Scaffold(
