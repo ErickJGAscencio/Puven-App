@@ -43,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
         //await m.addColumn(products, products.price);
         ////////////////////////////
 
-        // await m.createAll();
+        await m.createAll();
 
         // Insertar tamaño "Único"
         // await into(

@@ -491,6 +491,7 @@ class _HomePageState extends State<HomePage> {
                     isExpanded: true,
                     value: form.product,
                     hint: const Text("Seleccionar producto"),
+                    
                     decoration: _inputDecoration("Selecciona producto"),
                     items: products.map((p) {
                       return DropdownMenuItem(value: p, child: Text(p.name));

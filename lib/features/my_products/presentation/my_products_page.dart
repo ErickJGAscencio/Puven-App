@@ -58,9 +58,9 @@ class _MyProductsPageState extends State<MyProductsPage> {
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.black54,
                   labelStyle: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                   tabs: const [
                     Tab(text: "Productos"),
                     Tab(text: "Tamaños"),
@@ -185,7 +185,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
         final products = snapshot.data ?? [];
 
         if (products.isEmpty) {
-          return _emptyState("No hay productos");
+          return _emptyState("No hay productos", Icons.inventory);
         }
 
         return ListView.builder(
@@ -207,7 +207,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
             .toList();
 
         if (filtered.isEmpty) {
-          return _emptyState("No hay tamaños");
+          return _emptyState("No hay tamaños", Icons.straighten);
         }
 
         return ListView.builder(
@@ -218,9 +218,15 @@ class _MyProductsPageState extends State<MyProductsPage> {
     );
   }
 
-  Widget _emptyState(String text) {
+  Widget _emptyState(String text, IconData icon) {
     return Center(
-      child: Text(text, style: TextStyle(color: Colors.black54)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.black38, size: 55),
+          Text(text, style: TextStyle(color: Colors.black54)),
+        ],
+      ),
     );
   }
 
@@ -366,6 +372,8 @@ class _MyProductsPageState extends State<MyProductsPage> {
 
     final uniqueSizeId = await database.getUniqueSizeId();
 
+    String? errorMessage;
+
     //  Cargar datos si es edición
     if (product != null && hasSizes) {
       final existingVariants = await database.getVariantsByProduct(
@@ -431,14 +439,34 @@ class _MyProductsPageState extends State<MyProductsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          product == null
-                              ? "Añadir Nuevo Producto"
-                              : "Editar Producto",
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        /// HANDLE
+                        Center(
+                          child: Container(
+                            width: 50,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              product == null
+                                  ? "Añadir Nuevo Producto"
+                                  : "Editar Producto",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            InkWell(child: Icon(Icons.info_outline_rounded)),
+                          ],
                         ),
 
                         const SizedBox(height: 16),
@@ -446,11 +474,30 @@ class _MyProductsPageState extends State<MyProductsPage> {
                         // Nombre
                         TextField(
                           controller: nameController,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: "Nombre del producto",
-                            border: OutlineInputBorder(),
+                            border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
                           ),
+                          ),
+                          onChanged: (_) {
+                            setModalState(() {
+                              errorMessage = null;
+                            });
+                          },
                         ),
+                        if (errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
 
                         const SizedBox(height: 10),
 
@@ -464,6 +511,9 @@ class _MyProductsPageState extends State<MyProductsPage> {
                                     ? null
                                     : (v) => setModalState(() => hasSizes = v),
                                 title: const Text("Tamaños"),
+                                activeThumbColor: Colors.white,
+                                activeTrackColor:
+                                    PuventColors.primaryGreen.color,
                               ),
                             ),
                             Expanded(
@@ -473,6 +523,9 @@ class _MyProductsPageState extends State<MyProductsPage> {
                                     ? null
                                     : (v) => setModalState(() => isByGrams = v),
                                 title: const Text("Gramaje"),
+                                activeThumbColor: Colors.white,
+                                activeTrackColor:
+                                    PuventColors.primaryGreen.color,
                               ),
                             ),
                           ],
@@ -485,9 +538,11 @@ class _MyProductsPageState extends State<MyProductsPage> {
                           TextFormField(
                             controller: pricePerKgController,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: "Precio por Kg",
-                              border: OutlineInputBorder(),
+                              border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                             ),
                           ),
 
@@ -523,9 +578,13 @@ class _MyProductsPageState extends State<MyProductsPage> {
                                       child: TextFormField(
                                         initialValue: variants[i].price,
                                         keyboardType: TextInputType.number,
-                                        decoration: const InputDecoration(
+                                        decoration: InputDecoration(
                                           labelText: "Precio",
+                                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                                         ),
+                                        
                                         onChanged: (v) => variants[i].price = v,
                                       ),
                                     ),
@@ -558,9 +617,29 @@ class _MyProductsPageState extends State<MyProductsPage> {
                           TextFormField(
                             controller: simplePriceController,
                             keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: "Precio",
-                              border: OutlineInputBorder(),
+                              border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                            ),
+                            
+                            onChanged: (_) {
+                              setModalState(() {
+                                errorMessage = null;
+                              });
+                            },
+                          ),
+                        if (errorMessage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              errorMessage!,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
 
@@ -575,6 +654,14 @@ class _MyProductsPageState extends State<MyProductsPage> {
                               final isEditing = product != null;
 
                               int productId;
+                              if (name.isEmpty ||
+                                  simplePriceController.text.trim() == "") {
+                                setModalState(() {
+                                  errorMessage =
+                                      "No es posible dejar campos en blanco";
+                                });
+                                return;
+                              }
 
                               if (!isEditing) {
                                 // CREAR
@@ -679,7 +766,6 @@ class _MyProductsPageState extends State<MyProductsPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-
             return Padding(
               padding: EdgeInsets.only(
                 left: 16,
@@ -691,6 +777,19 @@ class _MyProductsPageState extends State<MyProductsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  /// HANDLE
+                  Center(
+                    child: Container(
+                      width: 50,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
                   Text(
                     size == null ? "Añadir Nuevo Tamaño" : "Editar Tamaño",
                     style: const TextStyle(
@@ -720,9 +819,11 @@ class _MyProductsPageState extends State<MyProductsPage> {
                   // Nombre
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: "Ingrese nombre del tamaño",
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                     ),
                   ),
 
@@ -736,11 +837,20 @@ class _MyProductsPageState extends State<MyProductsPage> {
                     child: ElevatedButton(
                       onPressed: () async {
                         final name = nameController.text;
-                        final isEditing = size != null; 
+                        final isEditing = size != null;
+
+                        if (name.isEmpty) {
+                          Navigator.pop(context);
+                          _showError("No es posible guardar un campo vacío");
+                          return;
+                        }
 
                         if (isEditing) {
                           await database.updateSize(
-                            ProductSize(productSizeId: size.productSizeId, name: name)
+                            ProductSize(
+                              productSizeId: size.productSizeId,
+                              name: name,
+                            ),
                           );
                         } else {
                           await database.insertSize(
@@ -761,5 +871,11 @@ class _MyProductsPageState extends State<MyProductsPage> {
         );
       },
     );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
