@@ -40,7 +40,10 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                       border: Border.all(color: Colors.black38),
                       borderRadius: BorderRadius.circular(5),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 2,
+                    ),
                     child: InkWell(
                       child: Row(
                         children: const [
@@ -59,8 +62,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                 hintText: "Buscar por # venta, cliente, producto",
               ),
               const SizedBox(height: 10),
-
-              // 🔹 Panel personalizado tipo Expansion
+                          // 
               SingleChildScrollView(
                 child: Column(
                   children: [
@@ -76,7 +78,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                       title: "Jueves, 7 de mayo",
                       total: 350.00,
                       expanded: _expandedJueves,
-                      onTap: () => setState(() => _expandedJueves = !_expandedJueves),
+                      onTap: () =>
+                          setState(() => _expandedJueves = !_expandedJueves),
                       ventas: const ["Venta C", "Venta D"],
                     ),
                   ],
@@ -90,55 +93,65 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   }
 
   Widget _buildExpandableCard({
-  required String title,
-  required double total,
-  required bool expanded,
-  required VoidCallback onTap,
-  required List<String> ventas,
-}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 3)),
-        ],
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.folder, color: Colors.green),
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text("\$${total.toStringAsFixed(2)}",
-                    style: const TextStyle(color: Colors.green)),
-              ],
+    required String title,
+    required double total,
+    required bool expanded,
+    required VoidCallback onTap,
+    required List<String> ventas,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: const Offset(0, 3),
             ),
-            trailing: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-          ),
-          if (expanded)
-            Column(
-              children: ventas.map((v) {
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: ListTile(
-                    leading: const Icon(Icons.subdirectory_arrow_right),
-                    title: Text(v),
+          ],
+        ),
+        child: Column(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.folder, color: Colors.green),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                );
-              }).toList(),
+                  Text(
+                    "\$${total.toStringAsFixed(2)}",
+                    style: const TextStyle(color: Colors.green),
+                  ),
+                ],
+              ),
+              trailing: Icon(expanded ? Icons.expand_less : Icons.expand_more),
             ),
-        ],
+            if (expanded)
+              Column(
+                children: ventas.map((v) {
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: ListTile(
+                      leading: const Icon(Icons.subdirectory_arrow_right),
+                      title: Text(v),
+                    ),
+                  );
+                }).toList(),
+              ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
-
-}
-

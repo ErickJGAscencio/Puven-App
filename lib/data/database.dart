@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -32,12 +32,18 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
+      if (from < 4) {
+        // Limpiar órdenes antiguas que fueron guardadas con zona horaria UTC incorrecta
+        // Para evitar inconsistencias de fechas
+        await customStatement('DELETE FROM order_items');
+        await customStatement('DELETE FROM orders');
+      }
       if (from == 3) {
         // Definir que hacer al pasar de version X a Y
         //await m.addColumn(products, products.price);
         ////////////////////////////
 
-        await m.createAll();
+        // await m.createAll();
 
         // Insertar tamaño "Único"
         // await into(
@@ -53,7 +59,7 @@ class AppDatabase extends _$AppDatabase {
         // ''');
         // //////////////////
         //         // 1. Añadir la columna en la nueva tabla
-        await m.addColumn(orderItems, orderItems.createdAt);
+        // await m.addColumn(orderItems, orderItems.createdAt);
 
         //       // 2. Copiar datos de la columna antigua a la nueva
         //       await customStatement('''

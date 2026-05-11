@@ -50,7 +50,7 @@ class _StatisticsPageState extends State<StatisticsPage>
 
     // Inicializamos el tab y los datos de la tabla
     rangeTabController = TabController(length: 3, vsync: this, initialIndex: 0);
-    viewTabController = TabController(length: 4, vsync: this, initialIndex: 0);
+    viewTabController = TabController(length: 3, vsync: this, initialIndex: 0);
     range = ChartRange.day;
 
     // Convierte el timestamp a DateTime
@@ -202,7 +202,7 @@ class _StatisticsPageState extends State<StatisticsPage>
                           Tab(text: "Ingresos"),
                           Tab(text: "Ventas"),
                           Tab(text: "Reparto"),
-                          Tab(text: "Histórico"),
+                          //Tab(text: "Histórico"),
                         ],
                       ),
                     ),
@@ -216,7 +216,7 @@ class _StatisticsPageState extends State<StatisticsPage>
                             _buildGeneralView(),
                             _buildVentasView(),
                             _buildRepartoView(),
-                            _buildHistoricoView(),
+                           // _buildHistoricoView(),
                           ],
                         ),
                       ),
@@ -390,16 +390,27 @@ class _StatisticsPageState extends State<StatisticsPage>
                     ),
                   ],
                 ),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: productsSold.length >= 3 ? 3 : productsSold.length,
-                  itemBuilder: (context, index) {
-                    if (productsSold.isEmpty) return Container();
-                    final item = productsSold[index];
-                    return _cardDetailSale(context, item, index);
-                  },
-                ),
+                productsSold.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 20),
+                        child: _emptyState(
+                          title: "No hubo ventas $currentRangeLabel",
+                          subtitle:
+                              "Los productos más vendidos aparecerán aquí",
+                          icon: Icons.inventory_2_outlined,
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: productsSold.length >= 3
+                            ? 3
+                            : productsSold.length,
+                        itemBuilder: (context, index) {
+                          final item = productsSold[index];
+                          return _cardDetailSale(context, item, index);
+                        },
+                      ),
               ]),
             ],
           ),
@@ -430,16 +441,22 @@ class _StatisticsPageState extends State<StatisticsPage>
                 //Switch(value: true, onChanged: null),
               ],
             ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: productsSold.length,
-              itemBuilder: (context, index) {
-                if (productsSold.isEmpty) return Container();
-                final item = productsSold[index];
-                return _cardDetailSale(context, item, index, showDetails: true);
-              },
-            ),
+            if (productsSold.isEmpty)
+              _emptyState(
+                title: "No hay productos vendidos",
+                subtitle: "Los productos aparecerán aquí automáticamente",
+                icon: Icons.inventory_2_outlined,
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: productsSold.length,
+                itemBuilder: (context, index) {
+                  final item = productsSold[index];
+                  return _cardDetailSale(context, item, index, showDetails: true);
+                },
+              ),
           ]),
         ],
       ),
@@ -451,7 +468,6 @@ class _StatisticsPageState extends State<StatisticsPage>
       child: Column(
         children: [
           const SizedBox(height: 20),
-
           _cakeChartCard(),
           const SizedBox(height: 20),
           _card(context, [
@@ -500,6 +516,55 @@ class _StatisticsPageState extends State<StatisticsPage>
             ),
             _cardDetailHistory(context, []),
           ]),
+        ],
+      ),
+    );
+  }
+
+  String get currentRangeLabel {
+    switch (range) {
+      case ChartRange.day:
+        return "hoy";
+      case ChartRange.week:
+        return "esta semana";
+      case ChartRange.month:
+        return "este mes";
+    }
+  }
+
+  Widget _emptyState({
+    String title = "Sin datos disponibles",
+    String subtitle = "Aún no hay información para este período",
+    IconData icon = Icons.bar_chart_rounded,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 50, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey[500], fontSize: 14),
+          ),
         ],
       ),
     );
@@ -582,6 +647,14 @@ class _StatisticsPageState extends State<StatisticsPage>
   }
 
   Widget _cakeChartCard() {
+    if (productsSold.isEmpty) {
+      return _emptyState(
+        title: "No hay distribución disponible",
+        subtitle: "Todavía no existen productos vendidos",
+        icon: Icons.pie_chart,
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1044,7 +1117,7 @@ class _StatisticsPageState extends State<StatisticsPage>
 
         return List.generate(24, (hour) {
           final y = hourlyTotals[hour] ?? 0;
-          
+
           if (!dataIndexStartChart["finded"] && y > 0) {
             dataIndexStartChart["finded"] = true;
             dataIndexStartChart["index"] = hour * 50.0; // escala aproximada
@@ -1120,7 +1193,7 @@ class _StatisticsPageState extends State<StatisticsPage>
           getTooltipItems: (touchedSpots) {
             return touchedSpots.map((spot) {
               return LineTooltipItem(
-                'Hora: ${spot.x.toInt()}h\nVentas: \$${spot.y.toStringAsFixed(2)}',
+                'Ventas: \$${spot.y.toStringAsFixed(2)}',
                 const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

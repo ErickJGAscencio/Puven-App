@@ -1108,6 +1108,7 @@ class _HomePageState extends State<HomePage> {
             totalAmount: total,
             paymentMethod: drift.Value("Efectivo"),
             processStatus: drift.Value("Pendiente"),
+            createdAt: drift.Value(DateTime.now()),
           ),
         );
 

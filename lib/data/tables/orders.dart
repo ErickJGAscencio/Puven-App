@@ -3,7 +3,7 @@ import 'package:drift/drift.dart';
 class Orders extends Table {
   IntColumn get orderId => integer().autoIncrement()();
   TextColumn get folio => text()();
-  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get createdAt => dateTime().clientDefault(() => DateTime.now())();
   RealColumn get totalAmount => real()(); 
   // Status del proceso dle pedido
     /*
