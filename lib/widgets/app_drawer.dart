@@ -44,12 +44,23 @@ class AppDrawer extends StatelessWidget {
             text: "Historial de Ventas",
             index: 4,
           ),
-          _drawerItem(icon: Icons.group, text: "Colaboradores", index: 5),
-          _drawerItem(icon: Icons.settings, text: "Configuraciones", index: 6),
+          _drawerItem(
+            icon: Icons.group,
+            text: "Colaboradores",
+            index: 5,
+            enabled: false,
+          ),
+          _drawerItem(
+            icon: Icons.settings,
+            text: "Configuraciones",
+            index: 6,
+            enabled: false,
+          ),
           _drawerItem(
             icon: Icons.workspace_premium,
             text: "Mejorar Plan",
             index: 7,
+            enabled: false,
           ),
           const Spacer(),
           const Divider(),
@@ -63,8 +74,10 @@ class AppDrawer extends StatelessWidget {
     required IconData icon,
     required String text,
     required int index,
+    bool enabled = true,
   }) {
     return ListTile(
+      enabled: enabled,
       selectedColor: PuventColors.primaryGreen.color,
       leading: Icon(icon),
       title: Text(text),
@@ -72,5 +85,4 @@ class AppDrawer extends StatelessWidget {
       onTap: () => onItemSelected(index),
     );
   }
-  
 }

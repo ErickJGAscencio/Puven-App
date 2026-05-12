@@ -35,8 +35,8 @@ class AppDatabase extends _$AppDatabase {
       if (from < 4) {
         // Limpiar órdenes antiguas que fueron guardadas con zona horaria UTC incorrecta
         // Para evitar inconsistencias de fechas
-        await customStatement('DELETE FROM order_items');
-        await customStatement('DELETE FROM orders');
+        // await customStatement('DELETE FROM order_items');
+        // await customStatement('DELETE FROM orders');
       }
       if (from == 3) {
         // Definir que hacer al pasar de version X a Y
@@ -170,7 +170,7 @@ class AppDatabase extends _$AppDatabase {
     )..where((o) => o.createdAt.isBetweenValues(start, end))).get();
   }
 
-  // CRUD for products more sales
+  // CRUD for products sold per range
   Future<List<OrderItemSummary>> getProductsSoldByDay(DateTime day) async {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
@@ -227,7 +227,10 @@ class AppDatabase extends _$AppDatabase {
     }).toList();
   }
 
-  Future<List<OrderItemSummary>> getProductsSoldByMonth(int year, int month) async {
+  Future<List<OrderItemSummary>> getProductsSoldByMonth(
+    int year,
+    int month,
+  ) async {
     final start = DateTime(year, month, 1);
     final end = DateTime(year, month + 1, 1);
 
@@ -258,7 +261,7 @@ class AppDatabase extends _$AppDatabase {
     }).toList();
   }
 
-  // CRUD for sales rangess
+  // CRUD for total sales by rangess
   Future<double> getTotalByDay(DateTime day) async {
     final start = DateTime(day.year, day.month, day.day);
     final end = start.add(const Duration(days: 1));
@@ -315,7 +318,6 @@ class AppDatabase extends _$AppDatabase {
   }
 
   // CRUD operations for Items Order
-
   Future<int> insertOrderItem(OrderItemsCompanion orderItem) =>
       into(orderItems).insert(orderItem);
   Stream<List<OrderItem>> watchOrderItems() => select(orderItems).watch();
@@ -359,6 +361,14 @@ class AppDatabase extends _$AppDatabase {
       (delete(orderItems)..where((tbl) => tbl.orderItemId.equals(id))).go();
   Future updateOrderItem(OrderItem orderItem) =>
       (update(orderItems).replace(orderItem));
+
+  // CRUD History sales
+  Future<List<Order>> getOrdersPage({required int limit, required int offset}) {
+    return (select(orders)
+          ..orderBy([(o) => OrderingTerm.desc(o.createdAt)])
+          ..limit(limit, offset: offset))
+        .get();
+  }
 }
 
 class TotalByHour {

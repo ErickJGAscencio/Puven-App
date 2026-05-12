@@ -19,13 +19,17 @@ class MyProductsPage extends StatefulWidget {
   State<MyProductsPage> createState() => _MyProductsPageState();
 }
 
-class _MyProductsPageState extends State<MyProductsPage> {
+class _MyProductsPageState extends State<MyProductsPage> 
+  with TickerProviderStateMixin {
+
   late final AppDatabase database;
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     database = widget.database;
+    _tabController = TabController(length: 2 , vsync: this, initialIndex: 0);
   }
 
   @override
@@ -47,6 +51,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: TabBar(
+                  controller: _tabController,
                   key: ValueKey("tabs"),
                   splashBorderRadius: BorderRadius.circular(30),
                   indicatorSize: TabBarIndicatorSize.tab,
@@ -72,7 +77,7 @@ class _MyProductsPageState extends State<MyProductsPage> {
             const SizedBox(height: 16),
 
             Expanded(
-              child: TabBarView(children: [_productsView(), _sizesView()]),
+              child: TabBarView(controller: _tabController, children: [_productsView(), _sizesView()]),
             ),
           ],
         ),
@@ -477,8 +482,8 @@ class _MyProductsPageState extends State<MyProductsPage> {
                           decoration: InputDecoration(
                             labelText: "Nombre del producto",
                             border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
                           ),
                           onChanged: (_) {
                             setModalState(() {
@@ -541,8 +546,8 @@ class _MyProductsPageState extends State<MyProductsPage> {
                             decoration: InputDecoration(
                               labelText: "Precio por Kg",
                               border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
                             ),
                           ),
 
@@ -552,6 +557,32 @@ class _MyProductsPageState extends State<MyProductsPage> {
                             children: [
                               ...variants.asMap().entries.map((entry) {
                                 int i = entry.key;
+
+                                if (filteredSizes.isEmpty) {
+                                  return Center(
+                                    child: RichText(
+                                      text: TextSpan(
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 16,
+                                        ),
+                                        children: [
+                                          TextSpan(
+                                            text: "No hay ",
+                                          ),
+                                          TextSpan(
+                                            text: "Tamaños ",
+                                            style: TextStyle(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          TextSpan(text: "registrados."),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
 
                                 return Row(
                                   children: [
@@ -581,10 +612,12 @@ class _MyProductsPageState extends State<MyProductsPage> {
                                         decoration: InputDecoration(
                                           labelText: "Precio",
                                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                                            borderRadius: BorderRadius.circular(
+                                              30,
+                                            ),
+                                          ),
                                         ),
-                                        
+
                                         onChanged: (v) => variants[i].price = v,
                                       ),
                                     ),
@@ -602,12 +635,17 @@ class _MyProductsPageState extends State<MyProductsPage> {
 
                               ElevatedButton.icon(
                                 onPressed: () {
+                                  if(filteredSizes.isEmpty){
+                                    _tabController.index = 1; // 1 representa la posicion del tab "Tamaños"
+                                    Navigator.pop(context);
+                                    return;
+                                  }
                                   setModalState(() {
                                     variants.add(VariantForm());
                                   });
                                 },
                                 icon: const Icon(Icons.add),
-                                label: const Text("Agregar tamaño"),
+                                label: filteredSizes.isEmpty ? Text("Crear Tamaños") :Text("Agregar tamaño"),
                               ),
                             ],
                           ),
@@ -620,10 +658,10 @@ class _MyProductsPageState extends State<MyProductsPage> {
                             decoration: InputDecoration(
                               labelText: "Precio",
                               border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
                             ),
-                            
+
                             onChanged: (_) {
                               setModalState(() {
                                 errorMessage = null;
@@ -822,8 +860,8 @@ class _MyProductsPageState extends State<MyProductsPage> {
                     decoration: InputDecoration(
                       labelText: "Ingrese nombre del tamaño",
                       border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                     ),
                   ),
 

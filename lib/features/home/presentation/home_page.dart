@@ -491,7 +491,6 @@ class _HomePageState extends State<HomePage> {
                     isExpanded: true,
                     value: form.product,
                     hint: const Text("Seleccionar producto"),
-                    
                     decoration: _inputDecoration("Selecciona producto"),
                     items: products.map((p) {
                       return DropdownMenuItem(value: p, child: Text(p.name));
@@ -1585,16 +1584,16 @@ class _HomePageState extends State<HomePage> {
       labelText: label,
       filled: true,
       fillColor: Colors.grey.shade50,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide(
           color: Colors.blueGrey, // color del borde cuando no está enfocado
           width: 1.5,
         ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(30),
         borderSide: BorderSide(
           color: Colors.blue, // color del borde cuando el campo está enfocado
           width: 2,

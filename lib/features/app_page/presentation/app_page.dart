@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:localix/data/database.dart';
 import 'package:localix/features/home/presentation/home_page.dart';
+import 'package:localix/features/login/presentation/login_page.dart';
 import 'package:localix/features/my_products/presentation/my_products_page.dart';
 import 'package:localix/features/sales_history/presentation/sales_history_page.dart';
 import 'package:localix/features/stadistics/statistics_page.dart';
@@ -14,7 +15,7 @@ enum PuventColors {
   warningRed,
   neutralGray,
   primaryGreyText,
-  background
+  background,
 }
 
 extension PuventColorsExtension on PuventColors {
@@ -78,38 +79,52 @@ class _AppPageState extends State<AppPage> {
   Widget build(BuildContext context) {
     // El orden en que estén los widgets es el orden en que se definen en AppDrawer
     final pages = [
-      HomePage(database: database, isCashOpen: isCashOpen),
+      LoginPage(),
       HomePage(database: database, isCashOpen: isCashOpen),
       MyProductsPage(database: database),
       StatisticsPage(database: database),
-      SalesHistoryPage(),
+      SalesHistoryPage(database: database),
     ];
 
     return Scaffold(
       extendBodyBehindAppBar: false,
       appBar: AppBar(
-        title: Text("Puven"),
-        backgroundColor: PuventColors.background.color,
+        iconTheme: IconThemeData(
+          color: currentIndex == 0
+              ? Colors.white
+              : Colors.black87,
+        ),
+        title: Text(
+          "Puven",
+          style: TextStyle(
+            color: currentIndex == 0 ? Colors.white : Colors.black87,
+          ),
+        ),
+        backgroundColor: currentIndex == 0
+            ? PuventColors.primaryGreen.color
+            : PuventColors.background.color,
+        animateColor: false, //
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         actions: [
-          if(currentIndex == 1)
-             ElevatedButton(
-            onPressed: () {
-              isCashOpen ? _closeCashDialog() : _openCashDialog();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isCashOpen
-                  ? Colors.red
-                  : PuventColors.primaryGreen.color,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+          if (currentIndex == 1)
+            ElevatedButton(
+              onPressed: () {
+                isCashOpen ? _closeCashDialog() : _openCashDialog();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isCashOpen
+                    ? Colors.red
+                    : PuventColors.primaryGreen.color,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: Text(
+                isCashOpen ? "Cerrar caja" : "Abrir caja",
+                style: const TextStyle(color: Colors.white),
               ),
             ),
-            child: Text(
-              isCashOpen ? "Cerrar caja" : "Abrir caja",
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
         ],
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
