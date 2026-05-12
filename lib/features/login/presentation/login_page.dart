@@ -43,23 +43,22 @@ class _LoginPageState extends State<LoginPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  /// LOGO O ICONO
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.lock_outline,
-                      size: 80,
-                      color: Colors.white,
-                    ),
-                  ),
+                  /// LOGO O ICONO //CAMBIAR POR IMAGENA?
+                  // Container(
+                  //   padding: const EdgeInsets.all(20),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.white.withOpacity(0.15),
+                  //     shape: BoxShape.circle,
+                  //   ),
+                  //   child: const Icon(
+                  //     Icons.lock_outline,
+                  //     size: 80,
+                  //     color: Colors.white,
+                  //   ),
+                  // ),
 
-                  const SizedBox(height: 30),
+                  // const SizedBox(height: 30),
 
-                  /// TITULO
                   const Text(
                     "Bienvenido",
                     style: TextStyle(

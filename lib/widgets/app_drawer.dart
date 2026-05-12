@@ -31,7 +31,7 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
           ),
-          _drawerItem(icon: Icons.login, text: "Acceder", index: 0),
+          _drawerItem(icon: Icons.login, text: "Acceder", index: 0,),
           _drawerItem(
             icon: Icons.point_of_sale,
             text: "Punto de Venta",

@@ -19,9 +19,8 @@ class MyProductsPage extends StatefulWidget {
   State<MyProductsPage> createState() => _MyProductsPageState();
 }
 
-class _MyProductsPageState extends State<MyProductsPage> 
-  with TickerProviderStateMixin {
-
+class _MyProductsPageState extends State<MyProductsPage>
+    with TickerProviderStateMixin {
   late final AppDatabase database;
   late final TabController _tabController;
 
@@ -29,7 +28,7 @@ class _MyProductsPageState extends State<MyProductsPage>
   void initState() {
     super.initState();
     database = widget.database;
-    _tabController = TabController(length: 2 , vsync: this, initialIndex: 0);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: 0);
   }
 
   @override
@@ -77,7 +76,10 @@ class _MyProductsPageState extends State<MyProductsPage>
             const SizedBox(height: 16),
 
             Expanded(
-              child: TabBarView(controller: _tabController, children: [_productsView(), _sizesView()]),
+              child: TabBarView(
+                controller: _tabController,
+                children: [_productsView(), _sizesView()],
+              ),
             ),
           ],
         ),
@@ -567,9 +569,7 @@ class _MyProductsPageState extends State<MyProductsPage>
                                           fontSize: 16,
                                         ),
                                         children: [
-                                          TextSpan(
-                                            text: "No hay ",
-                                          ),
+                                          TextSpan(text: "No hay "),
                                           TextSpan(
                                             text: "Tamaños ",
                                             style: TextStyle(
@@ -632,11 +632,12 @@ class _MyProductsPageState extends State<MyProductsPage>
                                   ],
                                 );
                               }),
-
+                              const SizedBox(height: 10),
                               ElevatedButton.icon(
                                 onPressed: () {
-                                  if(filteredSizes.isEmpty){
-                                    _tabController.index = 1; // 1 representa la posicion del tab "Tamaños"
+                                  if (filteredSizes.isEmpty) {
+                                    _tabController.index =
+                                        1; // 1 representa la posicion del tab "Tamaños"
                                     Navigator.pop(context);
                                     return;
                                   }
@@ -645,7 +646,9 @@ class _MyProductsPageState extends State<MyProductsPage>
                                   });
                                 },
                                 icon: const Icon(Icons.add),
-                                label: filteredSizes.isEmpty ? Text("Crear Tamaños") :Text("Agregar tamaño"),
+                                label: filteredSizes.isEmpty
+                                    ? Text("Crear Tamaños")
+                                    : Text("Agregar tamaño"),
                               ),
                             ],
                           ),
