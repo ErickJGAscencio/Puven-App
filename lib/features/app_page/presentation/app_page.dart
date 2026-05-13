@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:localix/data/database.dart';
@@ -213,9 +214,17 @@ class _AppPageState extends State<AppPage> {
                           ),
                         ),
                         onPressed: () async {
-                          final amount = double.tryParse(controller.text) ?? 0;
+                          final initialAmount = double.tryParse(controller.text) ?? 0;
 
-                          await CashService.openCash(amount);
+                          await CashService.openCash(initialAmount);
+
+                          await database.insertCashSession(
+                            CashSessionsCompanion(
+                              openedAt: drift.Value(DateTime.now()),
+                              openedBy: drift.Value("USUARIO"),
+                              openingAmount: drift.Value(initialAmount)
+                            )
+                          );
 
                           setState(() {
                             isCashOpen = true;
@@ -306,6 +315,16 @@ class _AppPageState extends State<AppPage> {
                         ),
                         onPressed: () async {
                           await CashService.closeCash();
+                          final cashSession = await database.getCashSessionOpened();
+                          double expectedCash = 50 + 350;
+
+                          await database.closeCashSession(
+                            cashSession.cashSesionId,              // id de la sesión
+                            "Erick",        // usuario que la cierra
+                            1200.0,         // efectivo final
+                            expectedCash,   // dinero esperado
+                          );
+
 
                           setState(() {
                             isCashOpen = false;

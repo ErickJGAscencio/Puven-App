@@ -1,12 +1,17 @@
 import 'package:drift/drift.dart';
 
-
-class CashSesion extends Table{
+class CashSessions extends Table{
   IntColumn get cashSesionId => integer().autoIncrement()();
+  
   DateTimeColumn get openedAt => dateTime()();
-  DateTimeColumn get closedAt => dateTime()();
+  DateTimeColumn get closedAt => dateTime().nullable()();
+
   TextColumn get openedBy => text()();
-  TextColumn get closedBy => text()();
-  RealColumn get initialCash => real()();
-  RealColumn get finalCash => real()();
+  TextColumn get closedBy => text().nullable()();
+  
+  RealColumn get openingAmount => real()();
+  RealColumn get closingAmount => real().nullable()();
+  RealColumn get expectedAmount => real().nullable()();
+
+  TextColumn get status => text().withDefault(Constant('open'))();
 }

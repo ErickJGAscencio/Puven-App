@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:localix/data/database.dart';
 import 'package:localix/features/app_page/presentation/app_page.dart';
@@ -17,33 +19,89 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   final List<Map<String, dynamic>> sales = [];
 
   late List<Order> _historySales = [];
-
+  late List<Order> _historySalesFiltered = [];
   String _searchValue = "";
-
+  late ScrollController _scrollController;
+  int _currentOffset = 0;
+  bool _hasMore = true;
+  bool _isLoading = false;
+  Timer? _debounce;
   @override
   void initState() {
     super.initState();
     database = widget.database;
+    _scrollController = ScrollController()..addListener(_onScroll);
     _loadHistorySales();
   }
 
-  void _loadHistorySales() async {
-    _historySales = await database.getOrdersPage(limit: 20, offset: 0);
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
-    for (Order history in _historySales) {
-      List<OrderItem> products = await database.getAllOrderItemsByOrder(history.orderId);
-      
+  Future<void> _loadHistorySales({
+    int limit = 20,
+    int offset = 0,
+    String search = "",
+    bool append = false,
+  }) async {
+    if (_isLoading) return;
+    _isLoading = true;
+
+    final orders = await database.getOrdersPage(
+      limit: limit,
+      offset: offset,
+      search: search,
+    );
+
+    if (append) {
+      _historySales.addAll(orders);
+      _currentOffset += orders.length;
+    } else {
+      _historySales = orders;
+      _currentOffset = orders.length;
+    }
+
+    _hasMore = orders.length == limit;
+
+    _historySalesFiltered = _historySales;
+
+    sales.clear();
+    for (Order history in _historySalesFiltered) {
+      final products = await database.getAllOrderItemsByOrder(history.orderId);
       sales.add({
         "id": history.orderId,
         "folio": history.folio,
-        "date": history.createdAt, //"11 Mayo 2026 - 10:45 AM",
+        "date": history.createdAt,
         "total": history.totalAmount,
         "expanded": false,
         "products": products,
       });
     }
 
+    _isLoading = false;
     setState(() {});
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels ==
+            _scrollController.position.maxScrollExtent &&
+        _hasMore &&
+        !_isLoading) {
+      _loadMore();
+    }
+  }
+
+  void _loadMore() {
+    _loadHistorySales(
+      limit: 20,
+      offset: _currentOffset,
+      search: _searchValue,
+      append: true,
+    );
+    _currentOffset += 20;
   }
 
   @override
@@ -107,14 +165,26 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
               SearchBar(
                 elevation: const WidgetStatePropertyAll(1),
                 leading: const Icon(Icons.search),
-                hintText: "Buscar venta o producto",
+                hintText: "Buscar por folio",
+
                 backgroundColor: const WidgetStatePropertyAll(Colors.white),
                 onTapOutside: (_) {
                   FocusScope.of(context).unfocus();
                 },
                 onChanged: (value) {
-                  setState(() {
-                    _searchValue = value;
+                  if (_debounce?.isActive ?? false) {
+                    _debounce!.cancel();
+                  }
+                  _debounce = Timer(const Duration(milliseconds: 500), () {
+                    _searchValue = value.trim();
+                    _currentOffset = 0;
+                    _hasMore = true;
+                    _loadHistorySales(
+                      limit: 20,
+                      offset: 0,
+                      search: _searchValue,
+                      append: false,
+                    );
                   });
                 },
               ),
@@ -123,13 +193,17 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
               Expanded(
                 child: ListView.builder(
+                  controller: _scrollController,
                   itemCount: sales.length,
                   itemBuilder: (context, index) {
                     final sale = sales[index];
 
                     final DateTime currentDate = sale["date"];
 
-                    String mesConNombre = DateFormat("d 'de' MMMM 'de' y", "es_ES").format(currentDate);
+                    String mesConNombre = DateFormat(
+                      "d 'de' MMMM 'de' y",
+                      "es_ES",
+                    ).format(currentDate);
 
                     final bool showDateHeader =
                         index == 0 ||
@@ -140,8 +214,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     if (_isSameDay(currentDate, DateTime.now())) {
                       labelDay = "Hoy";
                     } else {
-                      labelDay =
-                          "${mesConNombre}";
+                      labelDay = "${mesConNombre}";
                     }
 
                     return Column(

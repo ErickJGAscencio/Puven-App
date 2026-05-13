@@ -4,6 +4,7 @@ import 'package:drift/native.dart';
 import 'package:localix/data/tables/order_items.dart';
 import 'package:localix/data/tables/orders.dart';
 import 'package:localix/data/tables/product_size.dart';
+import 'package:localix/data/tables/cash_sesion.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
@@ -17,13 +18,20 @@ class DatabaseProvider {
 }
 
 @DriftDatabase(
-  tables: [Products, ProductVariants, ProductSizes, Orders, OrderItems],
+  tables: [
+    Products,
+    ProductVariants,
+    ProductSizes,
+    Orders,
+    OrderItems,
+    CashSessions,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -32,18 +40,20 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      if (from < 4) {
+      if (from < 6) {
         // Limpiar órdenes antiguas que fueron guardadas con zona horaria UTC incorrecta
         // Para evitar inconsistencias de fechas
         // await customStatement('DELETE FROM order_items');
         // await customStatement('DELETE FROM orders');
+        await m.createAll();
       }
-      if (from == 3) {
+      if (from == 4) {
         // Definir que hacer al pasar de version X a Y
         //await m.addColumn(products, products.price);
         ////////////////////////////
 
         await m.createAll();
+        // await m.createTable(cashSessions);
 
         // Insertar tamaño "Único"
         // await into(
@@ -211,11 +221,11 @@ class AppDatabase extends _$AppDatabase {
       readsFrom: {orderItems, products},
     ).get();
 
-    final result =
-        await (selectOnly(orders)
-              ..addColumns([orders.totalAmount.sum()])
-              ..where(orders.createdAt.isBetweenValues(start, end)))
-            .getSingle();
+    // final result =
+    //     await (selectOnly(orders)
+    //           ..addColumns([orders.totalAmount.sum()])
+    //           ..where(orders.createdAt.isBetweenValues(start, end)))
+    //         .getSingle();
 
     return results.map((row) {
       return OrderItemSummary(
@@ -363,11 +373,51 @@ class AppDatabase extends _$AppDatabase {
       (update(orderItems).replace(orderItem));
 
   // CRUD History sales
-  Future<List<Order>> getOrdersPage({required int limit, required int offset}) {
+  Future<List<Order>> getOrdersPage({
+    required int limit,
+    required int offset,
+    required String search,
+  }) {
+    if (search.isNotEmpty) {
+      return (select(orders)
+            ..orderBy([(o) => OrderingTerm.desc(o.createdAt)])
+            ..limit(limit, offset: offset)
+            ..where((o) => o.folio.like('%$search%')))
+          .get();
+    }
+
     return (select(orders)
           ..orderBy([(o) => OrderingTerm.desc(o.createdAt)])
           ..limit(limit, offset: offset))
         .get();
+  }
+
+  // CRUD for CashSessions
+  Future<int> insertCashSession(CashSessionsCompanion cashSession) =>
+      into(cashSessions).insert(cashSession);
+
+  Future<CashSession> getCashSessionOpened() {
+    return (select(
+      cashSessions,
+    )..where((tbl) => tbl.status.equals("open"))).getSingle();
+  }
+
+  Future<void> closeCashSession(
+    int id,
+    String closedBy,
+    double finalCash,
+    double expectedCash
+  ) async {
+    await (update(
+      cashSessions,
+    )..where((tbl) => tbl.cashSesionId.equals(id))).write(
+      CashSessionsCompanion(
+        closedAt: Value(DateTime.now()),
+        closedBy: Value(closedBy),
+        closingAmount: Value(finalCash), 
+        expectedAmount: Value(expectedCash)
+      ),
+    );
   }
 }
 

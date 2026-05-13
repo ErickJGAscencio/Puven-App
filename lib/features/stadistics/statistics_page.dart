@@ -1257,7 +1257,7 @@ class _StatisticsPageState extends State<StatisticsPage>
             children: [
               const Text(
                 "Ingresos Totales",
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: Colors.white),
               ),
               const SizedBox(height: 6),
               Text(
@@ -1269,13 +1269,13 @@ class _StatisticsPageState extends State<StatisticsPage>
                 ),
               ),
               const SizedBox(height: 6),
-              Row(
-                children: const [
-                  Icon(Icons.trending_up, color: Colors.white, size: 18),
-                  SizedBox(width: 4),
-                  Text("+2.9%", style: TextStyle(color: Colors.white)),
-                ],
-              ),
+              // Row(
+              //   children: const [
+              //     Icon(Icons.trending_up, color: Colors.white, size: 18),
+              //     SizedBox(width: 4),
+              //     Text("+2.9%", style: TextStyle(color: Colors.white)),
+              //   ],
+              // ),
             ],
           ),
 

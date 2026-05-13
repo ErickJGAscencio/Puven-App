@@ -1994,6 +1994,585 @@ class OrderItemsCompanion extends UpdateCompanion<OrderItem> {
   }
 }
 
+class $CashSessionsTable extends CashSessions
+    with TableInfo<$CashSessionsTable, CashSession> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CashSessionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _cashSesionIdMeta = const VerificationMeta(
+    'cashSesionId',
+  );
+  @override
+  late final GeneratedColumn<int> cashSesionId = GeneratedColumn<int>(
+    'cash_sesion_id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _openedAtMeta = const VerificationMeta(
+    'openedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> openedAt = GeneratedColumn<DateTime>(
+    'opened_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _closedAtMeta = const VerificationMeta(
+    'closedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> closedAt = GeneratedColumn<DateTime>(
+    'closed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _openedByMeta = const VerificationMeta(
+    'openedBy',
+  );
+  @override
+  late final GeneratedColumn<String> openedBy = GeneratedColumn<String>(
+    'opened_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _closedByMeta = const VerificationMeta(
+    'closedBy',
+  );
+  @override
+  late final GeneratedColumn<String> closedBy = GeneratedColumn<String>(
+    'closed_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _openingAmountMeta = const VerificationMeta(
+    'openingAmount',
+  );
+  @override
+  late final GeneratedColumn<double> openingAmount = GeneratedColumn<double>(
+    'opening_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _closingAmountMeta = const VerificationMeta(
+    'closingAmount',
+  );
+  @override
+  late final GeneratedColumn<double> closingAmount = GeneratedColumn<double>(
+    'closing_amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _expectedAmountMeta = const VerificationMeta(
+    'expectedAmount',
+  );
+  @override
+  late final GeneratedColumn<double> expectedAmount = GeneratedColumn<double>(
+    'expected_amount',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: Constant('open'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    cashSesionId,
+    openedAt,
+    closedAt,
+    openedBy,
+    closedBy,
+    openingAmount,
+    closingAmount,
+    expectedAmount,
+    status,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cash_sessions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CashSession> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('cash_sesion_id')) {
+      context.handle(
+        _cashSesionIdMeta,
+        cashSesionId.isAcceptableOrUnknown(
+          data['cash_sesion_id']!,
+          _cashSesionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('opened_at')) {
+      context.handle(
+        _openedAtMeta,
+        openedAt.isAcceptableOrUnknown(data['opened_at']!, _openedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_openedAtMeta);
+    }
+    if (data.containsKey('closed_at')) {
+      context.handle(
+        _closedAtMeta,
+        closedAt.isAcceptableOrUnknown(data['closed_at']!, _closedAtMeta),
+      );
+    }
+    if (data.containsKey('opened_by')) {
+      context.handle(
+        _openedByMeta,
+        openedBy.isAcceptableOrUnknown(data['opened_by']!, _openedByMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_openedByMeta);
+    }
+    if (data.containsKey('closed_by')) {
+      context.handle(
+        _closedByMeta,
+        closedBy.isAcceptableOrUnknown(data['closed_by']!, _closedByMeta),
+      );
+    }
+    if (data.containsKey('opening_amount')) {
+      context.handle(
+        _openingAmountMeta,
+        openingAmount.isAcceptableOrUnknown(
+          data['opening_amount']!,
+          _openingAmountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_openingAmountMeta);
+    }
+    if (data.containsKey('closing_amount')) {
+      context.handle(
+        _closingAmountMeta,
+        closingAmount.isAcceptableOrUnknown(
+          data['closing_amount']!,
+          _closingAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('expected_amount')) {
+      context.handle(
+        _expectedAmountMeta,
+        expectedAmount.isAcceptableOrUnknown(
+          data['expected_amount']!,
+          _expectedAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {cashSesionId};
+  @override
+  CashSession map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CashSession(
+      cashSesionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cash_sesion_id'],
+      )!,
+      openedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}opened_at'],
+      )!,
+      closedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}closed_at'],
+      ),
+      openedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}opened_by'],
+      )!,
+      closedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}closed_by'],
+      ),
+      openingAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}opening_amount'],
+      )!,
+      closingAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}closing_amount'],
+      ),
+      expectedAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}expected_amount'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+    );
+  }
+
+  @override
+  $CashSessionsTable createAlias(String alias) {
+    return $CashSessionsTable(attachedDatabase, alias);
+  }
+}
+
+class CashSession extends DataClass implements Insertable<CashSession> {
+  final int cashSesionId;
+  final DateTime openedAt;
+  final DateTime? closedAt;
+  final String openedBy;
+  final String? closedBy;
+  final double openingAmount;
+  final double? closingAmount;
+  final double? expectedAmount;
+  final String status;
+  const CashSession({
+    required this.cashSesionId,
+    required this.openedAt,
+    this.closedAt,
+    required this.openedBy,
+    this.closedBy,
+    required this.openingAmount,
+    this.closingAmount,
+    this.expectedAmount,
+    required this.status,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['cash_sesion_id'] = Variable<int>(cashSesionId);
+    map['opened_at'] = Variable<DateTime>(openedAt);
+    if (!nullToAbsent || closedAt != null) {
+      map['closed_at'] = Variable<DateTime>(closedAt);
+    }
+    map['opened_by'] = Variable<String>(openedBy);
+    if (!nullToAbsent || closedBy != null) {
+      map['closed_by'] = Variable<String>(closedBy);
+    }
+    map['opening_amount'] = Variable<double>(openingAmount);
+    if (!nullToAbsent || closingAmount != null) {
+      map['closing_amount'] = Variable<double>(closingAmount);
+    }
+    if (!nullToAbsent || expectedAmount != null) {
+      map['expected_amount'] = Variable<double>(expectedAmount);
+    }
+    map['status'] = Variable<String>(status);
+    return map;
+  }
+
+  CashSessionsCompanion toCompanion(bool nullToAbsent) {
+    return CashSessionsCompanion(
+      cashSesionId: Value(cashSesionId),
+      openedAt: Value(openedAt),
+      closedAt: closedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedAt),
+      openedBy: Value(openedBy),
+      closedBy: closedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closedBy),
+      openingAmount: Value(openingAmount),
+      closingAmount: closingAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closingAmount),
+      expectedAmount: expectedAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expectedAmount),
+      status: Value(status),
+    );
+  }
+
+  factory CashSession.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CashSession(
+      cashSesionId: serializer.fromJson<int>(json['cashSesionId']),
+      openedAt: serializer.fromJson<DateTime>(json['openedAt']),
+      closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
+      openedBy: serializer.fromJson<String>(json['openedBy']),
+      closedBy: serializer.fromJson<String?>(json['closedBy']),
+      openingAmount: serializer.fromJson<double>(json['openingAmount']),
+      closingAmount: serializer.fromJson<double?>(json['closingAmount']),
+      expectedAmount: serializer.fromJson<double?>(json['expectedAmount']),
+      status: serializer.fromJson<String>(json['status']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'cashSesionId': serializer.toJson<int>(cashSesionId),
+      'openedAt': serializer.toJson<DateTime>(openedAt),
+      'closedAt': serializer.toJson<DateTime?>(closedAt),
+      'openedBy': serializer.toJson<String>(openedBy),
+      'closedBy': serializer.toJson<String?>(closedBy),
+      'openingAmount': serializer.toJson<double>(openingAmount),
+      'closingAmount': serializer.toJson<double?>(closingAmount),
+      'expectedAmount': serializer.toJson<double?>(expectedAmount),
+      'status': serializer.toJson<String>(status),
+    };
+  }
+
+  CashSession copyWith({
+    int? cashSesionId,
+    DateTime? openedAt,
+    Value<DateTime?> closedAt = const Value.absent(),
+    String? openedBy,
+    Value<String?> closedBy = const Value.absent(),
+    double? openingAmount,
+    Value<double?> closingAmount = const Value.absent(),
+    Value<double?> expectedAmount = const Value.absent(),
+    String? status,
+  }) => CashSession(
+    cashSesionId: cashSesionId ?? this.cashSesionId,
+    openedAt: openedAt ?? this.openedAt,
+    closedAt: closedAt.present ? closedAt.value : this.closedAt,
+    openedBy: openedBy ?? this.openedBy,
+    closedBy: closedBy.present ? closedBy.value : this.closedBy,
+    openingAmount: openingAmount ?? this.openingAmount,
+    closingAmount: closingAmount.present
+        ? closingAmount.value
+        : this.closingAmount,
+    expectedAmount: expectedAmount.present
+        ? expectedAmount.value
+        : this.expectedAmount,
+    status: status ?? this.status,
+  );
+  CashSession copyWithCompanion(CashSessionsCompanion data) {
+    return CashSession(
+      cashSesionId: data.cashSesionId.present
+          ? data.cashSesionId.value
+          : this.cashSesionId,
+      openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
+      closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
+      openedBy: data.openedBy.present ? data.openedBy.value : this.openedBy,
+      closedBy: data.closedBy.present ? data.closedBy.value : this.closedBy,
+      openingAmount: data.openingAmount.present
+          ? data.openingAmount.value
+          : this.openingAmount,
+      closingAmount: data.closingAmount.present
+          ? data.closingAmount.value
+          : this.closingAmount,
+      expectedAmount: data.expectedAmount.present
+          ? data.expectedAmount.value
+          : this.expectedAmount,
+      status: data.status.present ? data.status.value : this.status,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashSession(')
+          ..write('cashSesionId: $cashSesionId, ')
+          ..write('openedAt: $openedAt, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('openedBy: $openedBy, ')
+          ..write('closedBy: $closedBy, ')
+          ..write('openingAmount: $openingAmount, ')
+          ..write('closingAmount: $closingAmount, ')
+          ..write('expectedAmount: $expectedAmount, ')
+          ..write('status: $status')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    cashSesionId,
+    openedAt,
+    closedAt,
+    openedBy,
+    closedBy,
+    openingAmount,
+    closingAmount,
+    expectedAmount,
+    status,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CashSession &&
+          other.cashSesionId == this.cashSesionId &&
+          other.openedAt == this.openedAt &&
+          other.closedAt == this.closedAt &&
+          other.openedBy == this.openedBy &&
+          other.closedBy == this.closedBy &&
+          other.openingAmount == this.openingAmount &&
+          other.closingAmount == this.closingAmount &&
+          other.expectedAmount == this.expectedAmount &&
+          other.status == this.status);
+}
+
+class CashSessionsCompanion extends UpdateCompanion<CashSession> {
+  final Value<int> cashSesionId;
+  final Value<DateTime> openedAt;
+  final Value<DateTime?> closedAt;
+  final Value<String> openedBy;
+  final Value<String?> closedBy;
+  final Value<double> openingAmount;
+  final Value<double?> closingAmount;
+  final Value<double?> expectedAmount;
+  final Value<String> status;
+  const CashSessionsCompanion({
+    this.cashSesionId = const Value.absent(),
+    this.openedAt = const Value.absent(),
+    this.closedAt = const Value.absent(),
+    this.openedBy = const Value.absent(),
+    this.closedBy = const Value.absent(),
+    this.openingAmount = const Value.absent(),
+    this.closingAmount = const Value.absent(),
+    this.expectedAmount = const Value.absent(),
+    this.status = const Value.absent(),
+  });
+  CashSessionsCompanion.insert({
+    this.cashSesionId = const Value.absent(),
+    required DateTime openedAt,
+    this.closedAt = const Value.absent(),
+    required String openedBy,
+    this.closedBy = const Value.absent(),
+    required double openingAmount,
+    this.closingAmount = const Value.absent(),
+    this.expectedAmount = const Value.absent(),
+    this.status = const Value.absent(),
+  }) : openedAt = Value(openedAt),
+       openedBy = Value(openedBy),
+       openingAmount = Value(openingAmount);
+  static Insertable<CashSession> custom({
+    Expression<int>? cashSesionId,
+    Expression<DateTime>? openedAt,
+    Expression<DateTime>? closedAt,
+    Expression<String>? openedBy,
+    Expression<String>? closedBy,
+    Expression<double>? openingAmount,
+    Expression<double>? closingAmount,
+    Expression<double>? expectedAmount,
+    Expression<String>? status,
+  }) {
+    return RawValuesInsertable({
+      if (cashSesionId != null) 'cash_sesion_id': cashSesionId,
+      if (openedAt != null) 'opened_at': openedAt,
+      if (closedAt != null) 'closed_at': closedAt,
+      if (openedBy != null) 'opened_by': openedBy,
+      if (closedBy != null) 'closed_by': closedBy,
+      if (openingAmount != null) 'opening_amount': openingAmount,
+      if (closingAmount != null) 'closing_amount': closingAmount,
+      if (expectedAmount != null) 'expected_amount': expectedAmount,
+      if (status != null) 'status': status,
+    });
+  }
+
+  CashSessionsCompanion copyWith({
+    Value<int>? cashSesionId,
+    Value<DateTime>? openedAt,
+    Value<DateTime?>? closedAt,
+    Value<String>? openedBy,
+    Value<String?>? closedBy,
+    Value<double>? openingAmount,
+    Value<double?>? closingAmount,
+    Value<double?>? expectedAmount,
+    Value<String>? status,
+  }) {
+    return CashSessionsCompanion(
+      cashSesionId: cashSesionId ?? this.cashSesionId,
+      openedAt: openedAt ?? this.openedAt,
+      closedAt: closedAt ?? this.closedAt,
+      openedBy: openedBy ?? this.openedBy,
+      closedBy: closedBy ?? this.closedBy,
+      openingAmount: openingAmount ?? this.openingAmount,
+      closingAmount: closingAmount ?? this.closingAmount,
+      expectedAmount: expectedAmount ?? this.expectedAmount,
+      status: status ?? this.status,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (cashSesionId.present) {
+      map['cash_sesion_id'] = Variable<int>(cashSesionId.value);
+    }
+    if (openedAt.present) {
+      map['opened_at'] = Variable<DateTime>(openedAt.value);
+    }
+    if (closedAt.present) {
+      map['closed_at'] = Variable<DateTime>(closedAt.value);
+    }
+    if (openedBy.present) {
+      map['opened_by'] = Variable<String>(openedBy.value);
+    }
+    if (closedBy.present) {
+      map['closed_by'] = Variable<String>(closedBy.value);
+    }
+    if (openingAmount.present) {
+      map['opening_amount'] = Variable<double>(openingAmount.value);
+    }
+    if (closingAmount.present) {
+      map['closing_amount'] = Variable<double>(closingAmount.value);
+    }
+    if (expectedAmount.present) {
+      map['expected_amount'] = Variable<double>(expectedAmount.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashSessionsCompanion(')
+          ..write('cashSesionId: $cashSesionId, ')
+          ..write('openedAt: $openedAt, ')
+          ..write('closedAt: $closedAt, ')
+          ..write('openedBy: $openedBy, ')
+          ..write('closedBy: $closedBy, ')
+          ..write('openingAmount: $openingAmount, ')
+          ..write('closingAmount: $closingAmount, ')
+          ..write('expectedAmount: $expectedAmount, ')
+          ..write('status: $status')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2004,6 +2583,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $OrdersTable orders = $OrdersTable(this);
   late final $OrderItemsTable orderItems = $OrderItemsTable(this);
+  late final $CashSessionsTable cashSessions = $CashSessionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2014,6 +2594,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     productVariants,
     orders,
     orderItems,
+    cashSessions,
   ];
 }
 
@@ -3916,6 +4497,284 @@ typedef $$OrderItemsTableProcessedTableManager =
       OrderItem,
       PrefetchHooks Function({bool orderId, bool variantId})
     >;
+typedef $$CashSessionsTableCreateCompanionBuilder =
+    CashSessionsCompanion Function({
+      Value<int> cashSesionId,
+      required DateTime openedAt,
+      Value<DateTime?> closedAt,
+      required String openedBy,
+      Value<String?> closedBy,
+      required double openingAmount,
+      Value<double?> closingAmount,
+      Value<double?> expectedAmount,
+      Value<String> status,
+    });
+typedef $$CashSessionsTableUpdateCompanionBuilder =
+    CashSessionsCompanion Function({
+      Value<int> cashSesionId,
+      Value<DateTime> openedAt,
+      Value<DateTime?> closedAt,
+      Value<String> openedBy,
+      Value<String?> closedBy,
+      Value<double> openingAmount,
+      Value<double?> closingAmount,
+      Value<double?> expectedAmount,
+      Value<String> status,
+    });
+
+class $$CashSessionsTableFilterComposer
+    extends Composer<_$AppDatabase, $CashSessionsTable> {
+  $$CashSessionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get cashSesionId => $composableBuilder(
+    column: $table.cashSesionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get openedAt => $composableBuilder(
+    column: $table.openedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get closedAt => $composableBuilder(
+    column: $table.closedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get openedBy => $composableBuilder(
+    column: $table.openedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get closedBy => $composableBuilder(
+    column: $table.closedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get openingAmount => $composableBuilder(
+    column: $table.openingAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get closingAmount => $composableBuilder(
+    column: $table.closingAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get expectedAmount => $composableBuilder(
+    column: $table.expectedAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CashSessionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CashSessionsTable> {
+  $$CashSessionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get cashSesionId => $composableBuilder(
+    column: $table.cashSesionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get openedAt => $composableBuilder(
+    column: $table.openedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get closedAt => $composableBuilder(
+    column: $table.closedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get openedBy => $composableBuilder(
+    column: $table.openedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get closedBy => $composableBuilder(
+    column: $table.closedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get openingAmount => $composableBuilder(
+    column: $table.openingAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get closingAmount => $composableBuilder(
+    column: $table.closingAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get expectedAmount => $composableBuilder(
+    column: $table.expectedAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CashSessionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CashSessionsTable> {
+  $$CashSessionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get cashSesionId => $composableBuilder(
+    column: $table.cashSesionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get openedAt =>
+      $composableBuilder(column: $table.openedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get closedAt =>
+      $composableBuilder(column: $table.closedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get openedBy =>
+      $composableBuilder(column: $table.openedBy, builder: (column) => column);
+
+  GeneratedColumn<String> get closedBy =>
+      $composableBuilder(column: $table.closedBy, builder: (column) => column);
+
+  GeneratedColumn<double> get openingAmount => $composableBuilder(
+    column: $table.openingAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get closingAmount => $composableBuilder(
+    column: $table.closingAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get expectedAmount => $composableBuilder(
+    column: $table.expectedAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+}
+
+class $$CashSessionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CashSessionsTable,
+          CashSession,
+          $$CashSessionsTableFilterComposer,
+          $$CashSessionsTableOrderingComposer,
+          $$CashSessionsTableAnnotationComposer,
+          $$CashSessionsTableCreateCompanionBuilder,
+          $$CashSessionsTableUpdateCompanionBuilder,
+          (
+            CashSession,
+            BaseReferences<_$AppDatabase, $CashSessionsTable, CashSession>,
+          ),
+          CashSession,
+          PrefetchHooks Function()
+        > {
+  $$CashSessionsTableTableManager(_$AppDatabase db, $CashSessionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CashSessionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CashSessionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CashSessionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> cashSesionId = const Value.absent(),
+                Value<DateTime> openedAt = const Value.absent(),
+                Value<DateTime?> closedAt = const Value.absent(),
+                Value<String> openedBy = const Value.absent(),
+                Value<String?> closedBy = const Value.absent(),
+                Value<double> openingAmount = const Value.absent(),
+                Value<double?> closingAmount = const Value.absent(),
+                Value<double?> expectedAmount = const Value.absent(),
+                Value<String> status = const Value.absent(),
+              }) => CashSessionsCompanion(
+                cashSesionId: cashSesionId,
+                openedAt: openedAt,
+                closedAt: closedAt,
+                openedBy: openedBy,
+                closedBy: closedBy,
+                openingAmount: openingAmount,
+                closingAmount: closingAmount,
+                expectedAmount: expectedAmount,
+                status: status,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> cashSesionId = const Value.absent(),
+                required DateTime openedAt,
+                Value<DateTime?> closedAt = const Value.absent(),
+                required String openedBy,
+                Value<String?> closedBy = const Value.absent(),
+                required double openingAmount,
+                Value<double?> closingAmount = const Value.absent(),
+                Value<double?> expectedAmount = const Value.absent(),
+                Value<String> status = const Value.absent(),
+              }) => CashSessionsCompanion.insert(
+                cashSesionId: cashSesionId,
+                openedAt: openedAt,
+                closedAt: closedAt,
+                openedBy: openedBy,
+                closedBy: closedBy,
+                openingAmount: openingAmount,
+                closingAmount: closingAmount,
+                expectedAmount: expectedAmount,
+                status: status,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CashSessionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CashSessionsTable,
+      CashSession,
+      $$CashSessionsTableFilterComposer,
+      $$CashSessionsTableOrderingComposer,
+      $$CashSessionsTableAnnotationComposer,
+      $$CashSessionsTableCreateCompanionBuilder,
+      $$CashSessionsTableUpdateCompanionBuilder,
+      (
+        CashSession,
+        BaseReferences<_$AppDatabase, $CashSessionsTable, CashSession>,
+      ),
+      CashSession,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3930,4 +4789,6 @@ class $AppDatabaseManager {
       $$OrdersTableTableManager(_db, _db.orders);
   $$OrderItemsTableTableManager get orderItems =>
       $$OrderItemsTableTableManager(_db, _db.orderItems);
+  $$CashSessionsTableTableManager get cashSessions =>
+      $$CashSessionsTableTableManager(_db, _db.cashSessions);
 }

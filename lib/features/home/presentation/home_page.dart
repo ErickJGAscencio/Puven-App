@@ -1156,6 +1156,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     showDialog(
+      barrierDismissible: false,
       context: context,
       builder: (context) {
         final orderItems = productForms.map((p) {
@@ -1173,6 +1174,7 @@ class _HomePageState extends State<HomePage> {
         );
 
         return Dialog(
+
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
