@@ -2015,6 +2015,18 @@ class $CashSessionsTable extends CashSessions
       'PRIMARY KEY AUTOINCREMENT',
     ),
   );
+  static const VerificationMeta _lastInteractionMeta = const VerificationMeta(
+    'lastInteraction',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastInteraction =
+      GeneratedColumn<DateTime>(
+        'last_interaction',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
   static const VerificationMeta _openedAtMeta = const VerificationMeta(
     'openedAt',
   );
@@ -2102,9 +2114,20 @@ class $CashSessionsTable extends CashSessions
     requiredDuringInsert: false,
     defaultValue: Constant('open'),
   );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: Constant('wait'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     cashSesionId,
+    lastInteraction,
     openedAt,
     closedAt,
     openedBy,
@@ -2113,6 +2136,7 @@ class $CashSessionsTable extends CashSessions
     closingAmount,
     expectedAmount,
     status,
+    type,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2134,6 +2158,17 @@ class $CashSessionsTable extends CashSessions
           _cashSesionIdMeta,
         ),
       );
+    }
+    if (data.containsKey('last_interaction')) {
+      context.handle(
+        _lastInteractionMeta,
+        lastInteraction.isAcceptableOrUnknown(
+          data['last_interaction']!,
+          _lastInteractionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastInteractionMeta);
     }
     if (data.containsKey('opened_at')) {
       context.handle(
@@ -2198,6 +2233,12 @@ class $CashSessionsTable extends CashSessions
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
     return context;
   }
 
@@ -2210,6 +2251,10 @@ class $CashSessionsTable extends CashSessions
       cashSesionId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}cash_sesion_id'],
+      )!,
+      lastInteraction: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_interaction'],
       )!,
       openedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -2243,6 +2288,10 @@ class $CashSessionsTable extends CashSessions
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
     );
   }
 
@@ -2254,6 +2303,7 @@ class $CashSessionsTable extends CashSessions
 
 class CashSession extends DataClass implements Insertable<CashSession> {
   final int cashSesionId;
+  final DateTime lastInteraction;
   final DateTime openedAt;
   final DateTime? closedAt;
   final String openedBy;
@@ -2262,8 +2312,10 @@ class CashSession extends DataClass implements Insertable<CashSession> {
   final double? closingAmount;
   final double? expectedAmount;
   final String status;
+  final String type;
   const CashSession({
     required this.cashSesionId,
+    required this.lastInteraction,
     required this.openedAt,
     this.closedAt,
     required this.openedBy,
@@ -2272,11 +2324,13 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     this.closingAmount,
     this.expectedAmount,
     required this.status,
+    required this.type,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['cash_sesion_id'] = Variable<int>(cashSesionId);
+    map['last_interaction'] = Variable<DateTime>(lastInteraction);
     map['opened_at'] = Variable<DateTime>(openedAt);
     if (!nullToAbsent || closedAt != null) {
       map['closed_at'] = Variable<DateTime>(closedAt);
@@ -2293,12 +2347,14 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       map['expected_amount'] = Variable<double>(expectedAmount);
     }
     map['status'] = Variable<String>(status);
+    map['type'] = Variable<String>(type);
     return map;
   }
 
   CashSessionsCompanion toCompanion(bool nullToAbsent) {
     return CashSessionsCompanion(
       cashSesionId: Value(cashSesionId),
+      lastInteraction: Value(lastInteraction),
       openedAt: Value(openedAt),
       closedAt: closedAt == null && nullToAbsent
           ? const Value.absent()
@@ -2315,6 +2371,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           ? const Value.absent()
           : Value(expectedAmount),
       status: Value(status),
+      type: Value(type),
     );
   }
 
@@ -2325,6 +2382,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CashSession(
       cashSesionId: serializer.fromJson<int>(json['cashSesionId']),
+      lastInteraction: serializer.fromJson<DateTime>(json['lastInteraction']),
       openedAt: serializer.fromJson<DateTime>(json['openedAt']),
       closedAt: serializer.fromJson<DateTime?>(json['closedAt']),
       openedBy: serializer.fromJson<String>(json['openedBy']),
@@ -2333,6 +2391,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       closingAmount: serializer.fromJson<double?>(json['closingAmount']),
       expectedAmount: serializer.fromJson<double?>(json['expectedAmount']),
       status: serializer.fromJson<String>(json['status']),
+      type: serializer.fromJson<String>(json['type']),
     );
   }
   @override
@@ -2340,6 +2399,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'cashSesionId': serializer.toJson<int>(cashSesionId),
+      'lastInteraction': serializer.toJson<DateTime>(lastInteraction),
       'openedAt': serializer.toJson<DateTime>(openedAt),
       'closedAt': serializer.toJson<DateTime?>(closedAt),
       'openedBy': serializer.toJson<String>(openedBy),
@@ -2348,11 +2408,13 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       'closingAmount': serializer.toJson<double?>(closingAmount),
       'expectedAmount': serializer.toJson<double?>(expectedAmount),
       'status': serializer.toJson<String>(status),
+      'type': serializer.toJson<String>(type),
     };
   }
 
   CashSession copyWith({
     int? cashSesionId,
+    DateTime? lastInteraction,
     DateTime? openedAt,
     Value<DateTime?> closedAt = const Value.absent(),
     String? openedBy,
@@ -2361,8 +2423,10 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     Value<double?> closingAmount = const Value.absent(),
     Value<double?> expectedAmount = const Value.absent(),
     String? status,
+    String? type,
   }) => CashSession(
     cashSesionId: cashSesionId ?? this.cashSesionId,
+    lastInteraction: lastInteraction ?? this.lastInteraction,
     openedAt: openedAt ?? this.openedAt,
     closedAt: closedAt.present ? closedAt.value : this.closedAt,
     openedBy: openedBy ?? this.openedBy,
@@ -2375,12 +2439,16 @@ class CashSession extends DataClass implements Insertable<CashSession> {
         ? expectedAmount.value
         : this.expectedAmount,
     status: status ?? this.status,
+    type: type ?? this.type,
   );
   CashSession copyWithCompanion(CashSessionsCompanion data) {
     return CashSession(
       cashSesionId: data.cashSesionId.present
           ? data.cashSesionId.value
           : this.cashSesionId,
+      lastInteraction: data.lastInteraction.present
+          ? data.lastInteraction.value
+          : this.lastInteraction,
       openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
       closedAt: data.closedAt.present ? data.closedAt.value : this.closedAt,
       openedBy: data.openedBy.present ? data.openedBy.value : this.openedBy,
@@ -2395,6 +2463,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           ? data.expectedAmount.value
           : this.expectedAmount,
       status: data.status.present ? data.status.value : this.status,
+      type: data.type.present ? data.type.value : this.type,
     );
   }
 
@@ -2402,6 +2471,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
   String toString() {
     return (StringBuffer('CashSession(')
           ..write('cashSesionId: $cashSesionId, ')
+          ..write('lastInteraction: $lastInteraction, ')
           ..write('openedAt: $openedAt, ')
           ..write('closedAt: $closedAt, ')
           ..write('openedBy: $openedBy, ')
@@ -2409,7 +2479,8 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           ..write('openingAmount: $openingAmount, ')
           ..write('closingAmount: $closingAmount, ')
           ..write('expectedAmount: $expectedAmount, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('type: $type')
           ..write(')'))
         .toString();
   }
@@ -2417,6 +2488,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
   @override
   int get hashCode => Object.hash(
     cashSesionId,
+    lastInteraction,
     openedAt,
     closedAt,
     openedBy,
@@ -2425,12 +2497,14 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     closingAmount,
     expectedAmount,
     status,
+    type,
   );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CashSession &&
           other.cashSesionId == this.cashSesionId &&
+          other.lastInteraction == this.lastInteraction &&
           other.openedAt == this.openedAt &&
           other.closedAt == this.closedAt &&
           other.openedBy == this.openedBy &&
@@ -2438,11 +2512,13 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           other.openingAmount == this.openingAmount &&
           other.closingAmount == this.closingAmount &&
           other.expectedAmount == this.expectedAmount &&
-          other.status == this.status);
+          other.status == this.status &&
+          other.type == this.type);
 }
 
 class CashSessionsCompanion extends UpdateCompanion<CashSession> {
   final Value<int> cashSesionId;
+  final Value<DateTime> lastInteraction;
   final Value<DateTime> openedAt;
   final Value<DateTime?> closedAt;
   final Value<String> openedBy;
@@ -2451,8 +2527,10 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
   final Value<double?> closingAmount;
   final Value<double?> expectedAmount;
   final Value<String> status;
+  final Value<String> type;
   const CashSessionsCompanion({
     this.cashSesionId = const Value.absent(),
+    this.lastInteraction = const Value.absent(),
     this.openedAt = const Value.absent(),
     this.closedAt = const Value.absent(),
     this.openedBy = const Value.absent(),
@@ -2461,9 +2539,11 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     this.closingAmount = const Value.absent(),
     this.expectedAmount = const Value.absent(),
     this.status = const Value.absent(),
+    this.type = const Value.absent(),
   });
   CashSessionsCompanion.insert({
     this.cashSesionId = const Value.absent(),
+    required DateTime lastInteraction,
     required DateTime openedAt,
     this.closedAt = const Value.absent(),
     required String openedBy,
@@ -2472,11 +2552,14 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     this.closingAmount = const Value.absent(),
     this.expectedAmount = const Value.absent(),
     this.status = const Value.absent(),
-  }) : openedAt = Value(openedAt),
+    this.type = const Value.absent(),
+  }) : lastInteraction = Value(lastInteraction),
+       openedAt = Value(openedAt),
        openedBy = Value(openedBy),
        openingAmount = Value(openingAmount);
   static Insertable<CashSession> custom({
     Expression<int>? cashSesionId,
+    Expression<DateTime>? lastInteraction,
     Expression<DateTime>? openedAt,
     Expression<DateTime>? closedAt,
     Expression<String>? openedBy,
@@ -2485,9 +2568,11 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     Expression<double>? closingAmount,
     Expression<double>? expectedAmount,
     Expression<String>? status,
+    Expression<String>? type,
   }) {
     return RawValuesInsertable({
       if (cashSesionId != null) 'cash_sesion_id': cashSesionId,
+      if (lastInteraction != null) 'last_interaction': lastInteraction,
       if (openedAt != null) 'opened_at': openedAt,
       if (closedAt != null) 'closed_at': closedAt,
       if (openedBy != null) 'opened_by': openedBy,
@@ -2496,11 +2581,13 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
       if (closingAmount != null) 'closing_amount': closingAmount,
       if (expectedAmount != null) 'expected_amount': expectedAmount,
       if (status != null) 'status': status,
+      if (type != null) 'type': type,
     });
   }
 
   CashSessionsCompanion copyWith({
     Value<int>? cashSesionId,
+    Value<DateTime>? lastInteraction,
     Value<DateTime>? openedAt,
     Value<DateTime?>? closedAt,
     Value<String>? openedBy,
@@ -2509,9 +2596,11 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     Value<double?>? closingAmount,
     Value<double?>? expectedAmount,
     Value<String>? status,
+    Value<String>? type,
   }) {
     return CashSessionsCompanion(
       cashSesionId: cashSesionId ?? this.cashSesionId,
+      lastInteraction: lastInteraction ?? this.lastInteraction,
       openedAt: openedAt ?? this.openedAt,
       closedAt: closedAt ?? this.closedAt,
       openedBy: openedBy ?? this.openedBy,
@@ -2520,6 +2609,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
       closingAmount: closingAmount ?? this.closingAmount,
       expectedAmount: expectedAmount ?? this.expectedAmount,
       status: status ?? this.status,
+      type: type ?? this.type,
     );
   }
 
@@ -2528,6 +2618,9 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     final map = <String, Expression>{};
     if (cashSesionId.present) {
       map['cash_sesion_id'] = Variable<int>(cashSesionId.value);
+    }
+    if (lastInteraction.present) {
+      map['last_interaction'] = Variable<DateTime>(lastInteraction.value);
     }
     if (openedAt.present) {
       map['opened_at'] = Variable<DateTime>(openedAt.value);
@@ -2553,6 +2646,9 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
     return map;
   }
 
@@ -2560,6 +2656,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
   String toString() {
     return (StringBuffer('CashSessionsCompanion(')
           ..write('cashSesionId: $cashSesionId, ')
+          ..write('lastInteraction: $lastInteraction, ')
           ..write('openedAt: $openedAt, ')
           ..write('closedAt: $closedAt, ')
           ..write('openedBy: $openedBy, ')
@@ -2567,7 +2664,8 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
           ..write('openingAmount: $openingAmount, ')
           ..write('closingAmount: $closingAmount, ')
           ..write('expectedAmount: $expectedAmount, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('type: $type')
           ..write(')'))
         .toString();
   }
@@ -4500,6 +4598,7 @@ typedef $$OrderItemsTableProcessedTableManager =
 typedef $$CashSessionsTableCreateCompanionBuilder =
     CashSessionsCompanion Function({
       Value<int> cashSesionId,
+      required DateTime lastInteraction,
       required DateTime openedAt,
       Value<DateTime?> closedAt,
       required String openedBy,
@@ -4508,10 +4607,12 @@ typedef $$CashSessionsTableCreateCompanionBuilder =
       Value<double?> closingAmount,
       Value<double?> expectedAmount,
       Value<String> status,
+      Value<String> type,
     });
 typedef $$CashSessionsTableUpdateCompanionBuilder =
     CashSessionsCompanion Function({
       Value<int> cashSesionId,
+      Value<DateTime> lastInteraction,
       Value<DateTime> openedAt,
       Value<DateTime?> closedAt,
       Value<String> openedBy,
@@ -4520,6 +4621,7 @@ typedef $$CashSessionsTableUpdateCompanionBuilder =
       Value<double?> closingAmount,
       Value<double?> expectedAmount,
       Value<String> status,
+      Value<String> type,
     });
 
 class $$CashSessionsTableFilterComposer
@@ -4533,6 +4635,11 @@ class $$CashSessionsTableFilterComposer
   });
   ColumnFilters<int> get cashSesionId => $composableBuilder(
     column: $table.cashSesionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastInteraction => $composableBuilder(
+    column: $table.lastInteraction,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4575,6 +4682,11 @@ class $$CashSessionsTableFilterComposer
     column: $table.status,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$CashSessionsTableOrderingComposer
@@ -4588,6 +4700,11 @@ class $$CashSessionsTableOrderingComposer
   });
   ColumnOrderings<int> get cashSesionId => $composableBuilder(
     column: $table.cashSesionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastInteraction => $composableBuilder(
+    column: $table.lastInteraction,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4630,6 +4747,11 @@ class $$CashSessionsTableOrderingComposer
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CashSessionsTableAnnotationComposer
@@ -4643,6 +4765,11 @@ class $$CashSessionsTableAnnotationComposer
   });
   GeneratedColumn<int> get cashSesionId => $composableBuilder(
     column: $table.cashSesionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastInteraction => $composableBuilder(
+    column: $table.lastInteraction,
     builder: (column) => column,
   );
 
@@ -4675,6 +4802,9 @@ class $$CashSessionsTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
 }
 
 class $$CashSessionsTableTableManager
@@ -4709,6 +4839,7 @@ class $$CashSessionsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> cashSesionId = const Value.absent(),
+                Value<DateTime> lastInteraction = const Value.absent(),
                 Value<DateTime> openedAt = const Value.absent(),
                 Value<DateTime?> closedAt = const Value.absent(),
                 Value<String> openedBy = const Value.absent(),
@@ -4717,8 +4848,10 @@ class $$CashSessionsTableTableManager
                 Value<double?> closingAmount = const Value.absent(),
                 Value<double?> expectedAmount = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> type = const Value.absent(),
               }) => CashSessionsCompanion(
                 cashSesionId: cashSesionId,
+                lastInteraction: lastInteraction,
                 openedAt: openedAt,
                 closedAt: closedAt,
                 openedBy: openedBy,
@@ -4727,10 +4860,12 @@ class $$CashSessionsTableTableManager
                 closingAmount: closingAmount,
                 expectedAmount: expectedAmount,
                 status: status,
+                type: type,
               ),
           createCompanionCallback:
               ({
                 Value<int> cashSesionId = const Value.absent(),
+                required DateTime lastInteraction,
                 required DateTime openedAt,
                 Value<DateTime?> closedAt = const Value.absent(),
                 required String openedBy,
@@ -4739,8 +4874,10 @@ class $$CashSessionsTableTableManager
                 Value<double?> closingAmount = const Value.absent(),
                 Value<double?> expectedAmount = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> type = const Value.absent(),
               }) => CashSessionsCompanion.insert(
                 cashSesionId: cashSesionId,
+                lastInteraction: lastInteraction,
                 openedAt: openedAt,
                 closedAt: closedAt,
                 openedBy: openedBy,
@@ -4749,6 +4886,7 @@ class $$CashSessionsTableTableManager
                 closingAmount: closingAmount,
                 expectedAmount: expectedAmount,
                 status: status,
+                type: type,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

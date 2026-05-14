@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,16 +40,16 @@ class AppDatabase extends _$AppDatabase {
       await m.createAll();
     },
     onUpgrade: (m, from, to) async {
-      if (from < 6) {
+      if (from < 7) {
         // Limpiar órdenes antiguas que fueron guardadas con zona horaria UTC incorrecta
         // Para evitar inconsistencias de fechas
         // await customStatement('DELETE FROM order_items');
         // await customStatement('DELETE FROM orders');
         await m.createAll();
       }
-      if (from == 4) {
+      if (from == 6) {
         // Definir que hacer al pasar de version X a Y
-        //await m.addColumn(products, products.price);
+        await m.addColumn(cashSessions, cashSessions.lastInteraction);
         ////////////////////////////
 
         await m.createAll();
@@ -396,17 +396,19 @@ class AppDatabase extends _$AppDatabase {
   Future<int> insertCashSession(CashSessionsCompanion cashSession) =>
       into(cashSessions).insert(cashSession);
 
-  Future<CashSession> getCashSessionOpened() {
+  Future<CashSession?> getCashSessionOpened() {
     return (select(
       cashSessions,
-    )..where((tbl) => tbl.status.equals("open"))).getSingle();
+    )..where((tbl) => tbl.status.equals("open"))).getSingleOrNull();
   }
 
   Future<void> closeCashSession(
     int id,
     String closedBy,
     double finalCash,
-    double expectedCash
+    double expectedCash,
+    String status,
+    String type
   ) async {
     await (update(
       cashSessions,
@@ -415,10 +417,59 @@ class AppDatabase extends _$AppDatabase {
         closedAt: Value(DateTime.now()),
         closedBy: Value(closedBy),
         closingAmount: Value(finalCash), 
-        expectedAmount: Value(expectedCash)
+        expectedAmount: Value(expectedCash),
+        status: Value(status),
+        type: Value(type)
       ),
     );
   }
+
+  /// Actualiza la última interacción de una sesión de caja abierta
+  /// Se debe llamar cada vez que hay actividad del usuario
+  Future<void> updateLastInteraction(int cashSessionId) async {
+    await (update(cashSessions)
+          ..where((tbl) => tbl.cashSesionId.equals(cashSessionId)))
+        .write(
+      CashSessionsCompanion(
+        lastInteraction: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Obtiene cajas abiertas de un día específico
+  /// Útil para detectar si hay caja abierta desde otro día
+  Future<List<CashSession>> getCashSessionsByDay(DateTime date) {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+
+    return (select(cashSessions)
+          ..where((tbl) =>
+              tbl.openedAt.isBetweenValues(startOfDay, endOfDay) &
+              tbl.status.equals("open")))
+        .get();
+  }
+
+  /// Obtiene la sesión de caja abierta más reciente sin importar la fecha
+  /// Útil para validar si hay caja abierta desde hace varios días
+  Future<CashSession?> getLatestOpenCashSession() {
+    return (select(cashSessions)
+          ..where((tbl) => tbl.status.equals("open"))
+          ..orderBy([(t) => OrderingTerm.desc(t.openedAt)])
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
+  /// Actualiza el tipo de sesión (para marcar como "temporal" si hay inactividad)
+  Future<void> updateCashSessionType(int cashSessionId, String type) async {
+    await (update(cashSessions)
+          ..where((tbl) => tbl.cashSesionId.equals(cashSessionId)))
+        .write(
+      CashSessionsCompanion(
+        type: Value(type),
+      ),
+    );
+  }
+
 }
 
 class TotalByHour {
@@ -445,23 +496,6 @@ class OrderItemSummary {
     required this.subtotal,
   });
 }
-
-/* Stream<List<(ProductVariant, ProductSize)>> watchVariantsWithSize(
-    int productId,
-  ) {
-    final query = select(productVariants).join([
-      innerJoin(
-        productSizes,
-        productSizes.productSizeId.equalsExp(productVariants.productSizeId),
-      ),
-    ])..where(productVariants.productId.equals(productId));
-
-    return query.watch().map((rows) {
-      return rows.map((row) {
-        return (row.readTable(productVariants), row.readTable(productSizes));
-      }).toList();
-    });
-  }*/
 
 //conexión SQLite
 LazyDatabase _openConnection() {

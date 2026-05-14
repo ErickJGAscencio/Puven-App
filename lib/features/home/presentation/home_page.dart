@@ -88,6 +88,8 @@ class _HomePageState extends State<HomePage> {
     database = widget.database;
     productForms.add(ProductFormModel());
     _loadFolio();
+    // ✅ Actualizar última interacción cuando se abre la página
+    CashService.updateLastInteraction(database);
   }
 
   @override
@@ -1137,6 +1139,9 @@ class _HomePageState extends State<HomePage> {
     // DefaultTabController.of(context).animateTo(1);
     // generar siguiente folio
     await _loadFolio();
+
+    // ✅ Actualizar last_interaction cada vez que se registra una venta
+    await CashService.updateLastInteraction(database);
   }
 
   void _continueSell() {

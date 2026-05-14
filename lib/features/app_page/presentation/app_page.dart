@@ -58,14 +58,39 @@ class _AppPageState extends State<AppPage> {
     super.initState();
     database = widget.database;
 
-    _loadCashState();
+    _loadCashSessionState();
   }
 
-  Future<void> _loadCashState() async {
-    final open = await CashService.isOpen();
-    setState(() {
-      isCashOpen = open;
-    });
+  Future<void> _loadCashSessionState() async {
+    // Usar el nuevo método de validación que considera múltiples casos
+    final validation = await CashService.validateCashSessionState(database);
+
+    if (validation != null && validation.hasPendingSession) {
+      // Mostrar diálogo apropiado según el tipo de sesión pendiente
+      final shouldContinue = await _showPendingSessionDialog(validation);
+
+      if (shouldContinue) {
+        // Actualizar la última interacción al reanudar
+        await CashService.updateLastInteraction(database);
+        
+        await CashService.isOpen();
+        
+        setState(() {
+          isCashOpen = true;
+        });
+      } else {
+        // Cerrar la caja
+        await CashService.closeCash(database);
+        setState(() {
+          isCashOpen = false;
+        });
+      }
+    } else {
+      setState(() {
+        isCashOpen = false;
+        
+      });
+    }
   }
 
   void _onSelect(int index) {
@@ -91,9 +116,7 @@ class _AppPageState extends State<AppPage> {
       extendBodyBehindAppBar: false,
       appBar: AppBar(
         iconTheme: IconThemeData(
-          color: currentIndex == 0
-              ? Colors.white
-              : Colors.black87,
+          color: currentIndex == 0 ? Colors.white : Colors.black87,
         ),
         title: Text(
           "Puven",
@@ -109,7 +132,7 @@ class _AppPageState extends State<AppPage> {
         elevation: 0,
         actions: [
           if (currentIndex == 1)
-            ElevatedButton(
+            Padding(padding: EdgeInsetsGeometry.symmetric(horizontal: 17),child: ElevatedButton(
               onPressed: () {
                 isCashOpen ? _closeCashDialog() : _openCashDialog();
               },
@@ -125,7 +148,7 @@ class _AppPageState extends State<AppPage> {
                 isCashOpen ? "Cerrar caja" : "Abrir caja",
                 style: const TextStyle(color: Colors.white),
               ),
-            ),
+            ))
         ],
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
@@ -214,21 +237,18 @@ class _AppPageState extends State<AppPage> {
                           ),
                         ),
                         onPressed: () async {
-                          final initialAmount = double.tryParse(controller.text) ?? 0;
+                          try {
+                            final initialAmount =
+                                double.tryParse(controller.text) ??
+                                0; // Obtenemos el monto inicial indicado
+                            await CashService.openCash(database, initialAmount);
 
-                          await CashService.openCash(initialAmount);
-
-                          await database.insertCashSession(
-                            CashSessionsCompanion(
-                              openedAt: drift.Value(DateTime.now()),
-                              openedBy: drift.Value("USUARIO"),
-                              openingAmount: drift.Value(initialAmount)
-                            )
-                          );
-
-                          setState(() {
-                            isCashOpen = true;
-                          });
+                            setState(() {
+                              isCashOpen = true;
+                            });
+                          } catch (e) {
+                            print("Error al abrir la caja:  $e");
+                          }
 
                           Navigator.pop(context);
                         },
@@ -314,17 +334,7 @@ class _AppPageState extends State<AppPage> {
                           ),
                         ),
                         onPressed: () async {
-                          await CashService.closeCash();
-                          final cashSession = await database.getCashSessionOpened();
-                          double expectedCash = 50 + 350;
-
-                          await database.closeCashSession(
-                            cashSession.cashSesionId,              // id de la sesión
-                            "Erick",        // usuario que la cierra
-                            1200.0,         // efectivo final
-                            expectedCash,   // dinero esperado
-                          );
-
+                          await CashService.closeCash(database);
 
                           setState(() {
                             isCashOpen = false;
@@ -350,4 +360,256 @@ class _AppPageState extends State<AppPage> {
       },
     );
   }
+
+  Future<bool> _showPendingSessionDialog(CashSessionValidation validation) {
+    final titleMap = {
+      'forced': 'App se cerró inesperadamente',
+      'another_day': 'Caja abierta desde otro día',
+      'inactivity': 'Inactividad detectada',
+      'temporal': 'Sesión temporal pendiente',
+    };
+
+    final title = titleMap[validation.type] ?? 'Sesión pendiente';
+    final color = validation.type == 'forced' ? Colors.red : PuventColors.primaryGreen.color;
+
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // HEADER
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      validation.type == 'forced'
+                          ? Icons.warning_rounded
+                          : validation.type == 'another_day'
+                              ? Icons.calendar_today
+                              : Icons.phone_android,
+                      color: color,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+                Divider(),
+
+                const SizedBox(height: 10),
+
+                // MENSAJE
+                Text(
+                  validation.message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16),
+                  maxLines: 5,
+                  softWrap: true,
+                ),
+
+                const SizedBox(height: 10),
+                Divider(),
+
+                // INFORMACIÓN ADICIONAL
+                Text(
+                  validation.type == 'forced'
+                      ? "Considera que CERRAR, terminará con la sesión actual."
+                      : "Considera que CERRAR, terminará con la sesión actual y CONTINUAR, reanudará la sesión.",
+                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                  maxLines: 3,
+                  softWrap: true,
+                ),
+
+                const SizedBox(height: 20),
+
+                // BOTONES
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text("Cerrar Caja"),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: color,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text(
+                          "Continuar",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).then((value) => value ?? false);
+  }
+
+  Future<bool> _after30MinutesDialog() {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // HEADER
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Inactividad detectada",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: PuventColors.primaryGreen.color,
+                      ),
+                    ),
+                    Icon(
+                      Icons.phone_android,
+                      color: PuventColors.primaryGreen.color,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+                Divider(),
+
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text:
+                            "Hemos detectado que no has entrado a Puven por más de 30 minutos, por seguridad bloqueamos el Punto de Venta. ¿Deseas ",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      TextSpan(
+                        text: "CERRAR ",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Color.fromARGB(255, 226, 20, 20),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextSpan(
+                        text: "la caja o ",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      TextSpan(
+                        text: "CONTINUAR ",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: PuventColors.primaryGreen.color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(),
+
+                Text(
+                  "Considera que CERRAR, terminará con la sesión actual.",
+                  style: TextStyle(fontSize: 16, color: Colors.black87),
+                  maxLines: 2,
+                  softWrap: true,
+                ),
+
+                Text(
+                  "Considera que CONTINUAR, reanudará la sesión actual.",
+                  style: TextStyle(fontSize: 16, color: Colors.black87),
+                  maxLines: 2,
+                  softWrap: true,
+                ),
+
+                const SizedBox(height: 10),
+                Divider(),
+
+                // BOTONES
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          await CashService.closeCash(database);
+                          Navigator.pop(context, false);
+                        },
+                        child: const Text("Cerrar"),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: PuventColors.primaryGreen.color,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(context, true);
+                        },
+                        child: const Text(
+                          "Continuar ",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).then((value) => value ?? false);
+  }
+
 }

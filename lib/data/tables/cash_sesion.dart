@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 class CashSessions extends Table{
   IntColumn get cashSesionId => integer().autoIncrement()();
   
+  DateTimeColumn get lastInteraction => dateTime()();
   DateTimeColumn get openedAt => dateTime()();
   DateTimeColumn get closedAt => dateTime().nullable()();
 
@@ -14,4 +15,10 @@ class CashSessions extends Table{
   RealColumn get expectedAmount => real().nullable()();
 
   TextColumn get status => text().withDefault(Constant('open'))();
+  TextColumn get type => text().withDefault(Constant('wait'))();
+  /**
+   * normal - cierre normal
+   * temporal - caja abierta con inactividad
+   * forced - cierre inesperado de la app
+   */
 }
