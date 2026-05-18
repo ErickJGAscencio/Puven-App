@@ -2114,15 +2114,17 @@ class $CashSessionsTable extends CashSessions
     requiredDuringInsert: false,
     defaultValue: Constant('open'),
   );
-  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  static const VerificationMeta _closeReasonMeta = const VerificationMeta(
+    'closeReason',
+  );
   @override
-  late final GeneratedColumn<String> type = GeneratedColumn<String>(
-    'type',
+  late final GeneratedColumn<String> closeReason = GeneratedColumn<String>(
+    'close_reason',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: Constant('wait'),
+    defaultValue: Constant('none'),
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -2136,7 +2138,7 @@ class $CashSessionsTable extends CashSessions
     closingAmount,
     expectedAmount,
     status,
-    type,
+    closeReason,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2233,10 +2235,13 @@ class $CashSessionsTable extends CashSessions
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
-    if (data.containsKey('type')) {
+    if (data.containsKey('close_reason')) {
       context.handle(
-        _typeMeta,
-        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+        _closeReasonMeta,
+        closeReason.isAcceptableOrUnknown(
+          data['close_reason']!,
+          _closeReasonMeta,
+        ),
       );
     }
     return context;
@@ -2288,9 +2293,9 @@ class $CashSessionsTable extends CashSessions
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
-      type: attachedDatabase.typeMapping.read(
+      closeReason: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}type'],
+        data['${effectivePrefix}close_reason'],
       )!,
     );
   }
@@ -2312,7 +2317,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
   final double? closingAmount;
   final double? expectedAmount;
   final String status;
-  final String type;
+  final String closeReason;
   const CashSession({
     required this.cashSesionId,
     required this.lastInteraction,
@@ -2324,7 +2329,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     this.closingAmount,
     this.expectedAmount,
     required this.status,
-    required this.type,
+    required this.closeReason,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2347,7 +2352,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       map['expected_amount'] = Variable<double>(expectedAmount);
     }
     map['status'] = Variable<String>(status);
-    map['type'] = Variable<String>(type);
+    map['close_reason'] = Variable<String>(closeReason);
     return map;
   }
 
@@ -2371,7 +2376,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           ? const Value.absent()
           : Value(expectedAmount),
       status: Value(status),
-      type: Value(type),
+      closeReason: Value(closeReason),
     );
   }
 
@@ -2391,7 +2396,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       closingAmount: serializer.fromJson<double?>(json['closingAmount']),
       expectedAmount: serializer.fromJson<double?>(json['expectedAmount']),
       status: serializer.fromJson<String>(json['status']),
-      type: serializer.fromJson<String>(json['type']),
+      closeReason: serializer.fromJson<String>(json['closeReason']),
     );
   }
   @override
@@ -2408,7 +2413,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
       'closingAmount': serializer.toJson<double?>(closingAmount),
       'expectedAmount': serializer.toJson<double?>(expectedAmount),
       'status': serializer.toJson<String>(status),
-      'type': serializer.toJson<String>(type),
+      'closeReason': serializer.toJson<String>(closeReason),
     };
   }
 
@@ -2423,7 +2428,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     Value<double?> closingAmount = const Value.absent(),
     Value<double?> expectedAmount = const Value.absent(),
     String? status,
-    String? type,
+    String? closeReason,
   }) => CashSession(
     cashSesionId: cashSesionId ?? this.cashSesionId,
     lastInteraction: lastInteraction ?? this.lastInteraction,
@@ -2439,7 +2444,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
         ? expectedAmount.value
         : this.expectedAmount,
     status: status ?? this.status,
-    type: type ?? this.type,
+    closeReason: closeReason ?? this.closeReason,
   );
   CashSession copyWithCompanion(CashSessionsCompanion data) {
     return CashSession(
@@ -2463,7 +2468,9 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           ? data.expectedAmount.value
           : this.expectedAmount,
       status: data.status.present ? data.status.value : this.status,
-      type: data.type.present ? data.type.value : this.type,
+      closeReason: data.closeReason.present
+          ? data.closeReason.value
+          : this.closeReason,
     );
   }
 
@@ -2480,7 +2487,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           ..write('closingAmount: $closingAmount, ')
           ..write('expectedAmount: $expectedAmount, ')
           ..write('status: $status, ')
-          ..write('type: $type')
+          ..write('closeReason: $closeReason')
           ..write(')'))
         .toString();
   }
@@ -2497,7 +2504,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
     closingAmount,
     expectedAmount,
     status,
-    type,
+    closeReason,
   );
   @override
   bool operator ==(Object other) =>
@@ -2513,7 +2520,7 @@ class CashSession extends DataClass implements Insertable<CashSession> {
           other.closingAmount == this.closingAmount &&
           other.expectedAmount == this.expectedAmount &&
           other.status == this.status &&
-          other.type == this.type);
+          other.closeReason == this.closeReason);
 }
 
 class CashSessionsCompanion extends UpdateCompanion<CashSession> {
@@ -2527,7 +2534,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
   final Value<double?> closingAmount;
   final Value<double?> expectedAmount;
   final Value<String> status;
-  final Value<String> type;
+  final Value<String> closeReason;
   const CashSessionsCompanion({
     this.cashSesionId = const Value.absent(),
     this.lastInteraction = const Value.absent(),
@@ -2539,7 +2546,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     this.closingAmount = const Value.absent(),
     this.expectedAmount = const Value.absent(),
     this.status = const Value.absent(),
-    this.type = const Value.absent(),
+    this.closeReason = const Value.absent(),
   });
   CashSessionsCompanion.insert({
     this.cashSesionId = const Value.absent(),
@@ -2552,7 +2559,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     this.closingAmount = const Value.absent(),
     this.expectedAmount = const Value.absent(),
     this.status = const Value.absent(),
-    this.type = const Value.absent(),
+    this.closeReason = const Value.absent(),
   }) : lastInteraction = Value(lastInteraction),
        openedAt = Value(openedAt),
        openedBy = Value(openedBy),
@@ -2568,7 +2575,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     Expression<double>? closingAmount,
     Expression<double>? expectedAmount,
     Expression<String>? status,
-    Expression<String>? type,
+    Expression<String>? closeReason,
   }) {
     return RawValuesInsertable({
       if (cashSesionId != null) 'cash_sesion_id': cashSesionId,
@@ -2581,7 +2588,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
       if (closingAmount != null) 'closing_amount': closingAmount,
       if (expectedAmount != null) 'expected_amount': expectedAmount,
       if (status != null) 'status': status,
-      if (type != null) 'type': type,
+      if (closeReason != null) 'close_reason': closeReason,
     });
   }
 
@@ -2596,7 +2603,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     Value<double?>? closingAmount,
     Value<double?>? expectedAmount,
     Value<String>? status,
-    Value<String>? type,
+    Value<String>? closeReason,
   }) {
     return CashSessionsCompanion(
       cashSesionId: cashSesionId ?? this.cashSesionId,
@@ -2609,7 +2616,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
       closingAmount: closingAmount ?? this.closingAmount,
       expectedAmount: expectedAmount ?? this.expectedAmount,
       status: status ?? this.status,
-      type: type ?? this.type,
+      closeReason: closeReason ?? this.closeReason,
     );
   }
 
@@ -2646,8 +2653,8 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
-    if (type.present) {
-      map['type'] = Variable<String>(type.value);
+    if (closeReason.present) {
+      map['close_reason'] = Variable<String>(closeReason.value);
     }
     return map;
   }
@@ -2665,7 +2672,7 @@ class CashSessionsCompanion extends UpdateCompanion<CashSession> {
           ..write('closingAmount: $closingAmount, ')
           ..write('expectedAmount: $expectedAmount, ')
           ..write('status: $status, ')
-          ..write('type: $type')
+          ..write('closeReason: $closeReason')
           ..write(')'))
         .toString();
   }
@@ -4607,7 +4614,7 @@ typedef $$CashSessionsTableCreateCompanionBuilder =
       Value<double?> closingAmount,
       Value<double?> expectedAmount,
       Value<String> status,
-      Value<String> type,
+      Value<String> closeReason,
     });
 typedef $$CashSessionsTableUpdateCompanionBuilder =
     CashSessionsCompanion Function({
@@ -4621,7 +4628,7 @@ typedef $$CashSessionsTableUpdateCompanionBuilder =
       Value<double?> closingAmount,
       Value<double?> expectedAmount,
       Value<String> status,
-      Value<String> type,
+      Value<String> closeReason,
     });
 
 class $$CashSessionsTableFilterComposer
@@ -4683,8 +4690,8 @@ class $$CashSessionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get type => $composableBuilder(
-    column: $table.type,
+  ColumnFilters<String> get closeReason => $composableBuilder(
+    column: $table.closeReason,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4748,8 +4755,8 @@ class $$CashSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get type => $composableBuilder(
-    column: $table.type,
+  ColumnOrderings<String> get closeReason => $composableBuilder(
+    column: $table.closeReason,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -4803,8 +4810,10 @@ class $$CashSessionsTableAnnotationComposer
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
-  GeneratedColumn<String> get type =>
-      $composableBuilder(column: $table.type, builder: (column) => column);
+  GeneratedColumn<String> get closeReason => $composableBuilder(
+    column: $table.closeReason,
+    builder: (column) => column,
+  );
 }
 
 class $$CashSessionsTableTableManager
@@ -4848,7 +4857,7 @@ class $$CashSessionsTableTableManager
                 Value<double?> closingAmount = const Value.absent(),
                 Value<double?> expectedAmount = const Value.absent(),
                 Value<String> status = const Value.absent(),
-                Value<String> type = const Value.absent(),
+                Value<String> closeReason = const Value.absent(),
               }) => CashSessionsCompanion(
                 cashSesionId: cashSesionId,
                 lastInteraction: lastInteraction,
@@ -4860,7 +4869,7 @@ class $$CashSessionsTableTableManager
                 closingAmount: closingAmount,
                 expectedAmount: expectedAmount,
                 status: status,
-                type: type,
+                closeReason: closeReason,
               ),
           createCompanionCallback:
               ({
@@ -4874,7 +4883,7 @@ class $$CashSessionsTableTableManager
                 Value<double?> closingAmount = const Value.absent(),
                 Value<double?> expectedAmount = const Value.absent(),
                 Value<String> status = const Value.absent(),
-                Value<String> type = const Value.absent(),
+                Value<String> closeReason = const Value.absent(),
               }) => CashSessionsCompanion.insert(
                 cashSesionId: cashSesionId,
                 lastInteraction: lastInteraction,
@@ -4886,7 +4895,7 @@ class $$CashSessionsTableTableManager
                 closingAmount: closingAmount,
                 expectedAmount: expectedAmount,
                 status: status,
-                type: type,
+                closeReason: closeReason,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

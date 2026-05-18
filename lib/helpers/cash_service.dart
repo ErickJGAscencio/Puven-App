@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:localix/data/database.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class CashService {
   static const _isOpenKey = "cash_open";
   static const _initialKey = "cash_initial";
+  static Timer? _cashMonitorTimer;
 
   // Funcion para abrir la caja para empezar a registrar ventas.
   static Future<void> openCash(
@@ -23,6 +26,8 @@ class CashService {
         openingAmount: drift.Value(openingAmount),
       ),
     );
+
+    monitorCashSession(database); // Iniciamos el monitor solo cuando hay una caja abierta
   }
 
   static Future<void> closeCash(AppDatabase database) async {
@@ -57,6 +62,9 @@ class CashService {
         "normal", // Tipo de cierre normal
       );
     }
+
+    _cashMonitorTimer?.cancel();
+    _cashMonitorTimer = null;
   }
 
   static Future<bool> isOpen() async {
@@ -103,10 +111,11 @@ class CashService {
     final daysDifference = now.difference(cashSession.openedAt).inDays;
 
     // Caso: Cierre forzoso (crash de app)
-    if (cashSession.type == "forced") {
+    if (cashSession.closeReason == "forced") {
       return CashSessionValidation(
+        cashSessionId: cashSession.cashSesionId,
         hasPendingSession: true,
-        type: "forced",
+        closeReason: "forced",
         message:
             "La aplicación se cerró inesperadamente. La caja está abierta desde ${_formatDateTime(cashSession.openedAt)}",
         canResume: true,
@@ -114,10 +123,11 @@ class CashService {
     }
 
     // Caso: Caja abierta desde otro día
-    if (daysDifference > 0) {
+    if (cashSession.closeReason == "day_closed"){
       return CashSessionValidation(
+        cashSessionId: cashSession.cashSesionId,
         hasPendingSession: true,
-        type: "another_day",
+        closeReason: "another_day",
         message:
             "La caja está abierta desde ${_formatDateTime(cashSession.openedAt)} (hace $daysDifference día(s))",
         canResume: true,
@@ -125,10 +135,11 @@ class CashService {
     }
 
     // Caso: Inactividad > 30 minutos
-    if (difference.inMinutes >= 30 && cashSession.type != "temporal") {
+    if (cashSession.closeReason == "temporally_closed") {
       return CashSessionValidation(
+        cashSessionId: cashSession.cashSesionId,
         hasPendingSession: true,
-        type: "inactivity",
+        closeReason: "inactivity",
         message:
             "Inactividad detectada por más de 30 minutos. Bloqueamos el Punto de Venta por seguridad.",
         canResume: true,
@@ -136,10 +147,11 @@ class CashService {
     }
 
     // Caso: Sesión normal
-    if (cashSession.type == "temporal") {
+    if (cashSession.closeReason == "temporal") {
       return CashSessionValidation(
+        cashSessionId: cashSession.cashSesionId,
         hasPendingSession: true,
-        type: "temporal",
+        closeReason: "temporal",
         message: "Hay una sesión temporal pendiente",
         canResume: true,
       );
@@ -182,7 +194,7 @@ class CashService {
         database.cashSessions,
       )..where((tbl) => tbl.cashSesionId.equals(session.cashSesionId))).write(
         CashSessionsCompanion(
-          type: drift.Value('forzoso'),
+          closeReason: drift.Value('forced'),
           closedAt: drift.Value(DateTime.now()),
         ),
       );
@@ -212,18 +224,38 @@ class CashService {
 
     return "${date.day} de ${monthNames[date.month - 1]} de ${date.year} a las $hour:$minute";
   }
+
+  static void monitorCashSession(AppDatabase database){
+    Timer.periodic(const Duration(minutes: 5), (timer) async  {
+      final session = await database.getCashSessionOpened();
+      if(session!= null){
+        final now = DateTime.now();
+        final diff = now.difference(session.lastInteraction);
+
+        if(diff.inMinutes >= 30 && diff.inHours < 24){
+          await database.updateCashSessionType(session.cashSesionId, 'temporally_closed');
+        }else if(diff.inHours >= 24){
+          await database.updateCashSessionType(session.cashSesionId, 'day_closed');
+        }
+      }else{
+        timer.cancel(); // Detiene el monitoreo si no hay caja abierta
+      }
+    });
+  }
 }
 
 /// Clase para encapsular la validación de estado de sesión de caja
 class CashSessionValidation {
+  final int cashSessionId;
   final bool hasPendingSession;
-  final String type; // "forced", "another_day", "inactivity", "temporal"
+  final String closeReason; // "none", "temporally_closed", "day_closed", "normal"
   final String message;
   final bool canResume;
 
   CashSessionValidation({
+    required this.cashSessionId,
     required this.hasPendingSession,
-    required this.type,
+    required this.closeReason,
     required this.message,
     required this.canResume,
   });

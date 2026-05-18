@@ -13,6 +13,8 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // throw Exception("Simulación de crash");
+
     return Drawer(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.only(bottomRight: Radius.circular(40)),

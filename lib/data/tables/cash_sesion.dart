@@ -15,8 +15,9 @@ class CashSessions extends Table{
   RealColumn get expectedAmount => real().nullable()();
 
   TextColumn get status => text().withDefault(Constant('open'))();
-  TextColumn get type => text().withDefault(Constant('wait'))();
-  /**
+  TextColumn get closeReason => text().withDefault(Constant('none'))();
+
+  /*
    * normal - cierre normal
    * temporal - caja abierta con inactividad
    * forced - cierre inesperado de la app

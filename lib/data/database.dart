@@ -419,7 +419,7 @@ class AppDatabase extends _$AppDatabase {
         closingAmount: Value(finalCash), 
         expectedAmount: Value(expectedCash),
         status: Value(status),
-        type: Value(type)
+        closeReason: Value(type)
       ),
     );
   }
@@ -465,7 +465,7 @@ class AppDatabase extends _$AppDatabase {
           ..where((tbl) => tbl.cashSesionId.equals(cashSessionId)))
         .write(
       CashSessionsCompanion(
-        type: Value(type),
+        closeReason: Value(type),
       ),
     );
   }

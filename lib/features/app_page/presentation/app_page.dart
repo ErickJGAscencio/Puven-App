@@ -64,6 +64,7 @@ class _AppPageState extends State<AppPage> {
   Future<void> _loadCashSessionState() async {
     // Usar el nuevo método de validación que considera múltiples casos
     final validation = await CashService.validateCashSessionState(database);
+    final cashOpen = await CashService.isOpen();
 
     if (validation != null && validation.hasPendingSession) {
       // Mostrar diálogo apropiado según el tipo de sesión pendiente
@@ -72,12 +73,15 @@ class _AppPageState extends State<AppPage> {
       if (shouldContinue) {
         // Actualizar la última interacción al reanudar
         await CashService.updateLastInteraction(database);
-        
-        await CashService.isOpen();
-        
+        await database.updateCashSessionType(
+          validation.cashSessionId,
+          "none"
+        );
+
         setState(() {
-          isCashOpen = true;
+          isCashOpen = cashOpen;
         });
+        CashService.monitorCashSession(database);
       } else {
         // Cerrar la caja
         await CashService.closeCash(database);
@@ -86,9 +90,9 @@ class _AppPageState extends State<AppPage> {
         });
       }
     } else {
+      CashService.monitorCashSession(database);
       setState(() {
-        isCashOpen = false;
-        
+        isCashOpen = cashOpen;
       });
     }
   }
@@ -369,8 +373,8 @@ class _AppPageState extends State<AppPage> {
       'temporal': 'Sesión temporal pendiente',
     };
 
-    final title = titleMap[validation.type] ?? 'Sesión pendiente';
-    final color = validation.type == 'forced' ? Colors.red : PuventColors.primaryGreen.color;
+    final title = titleMap[validation.closeReason] ?? 'Sesión pendiente';
+    final color = validation.closeReason == 'forced' ? Colors.red : PuventColors.primaryGreen.color;
 
     return showDialog<bool>(
       context: context,
@@ -400,9 +404,9 @@ class _AppPageState extends State<AppPage> {
                       ),
                     ),
                     Icon(
-                      validation.type == 'forced'
+                      validation.closeReason == 'forced'
                           ? Icons.warning_rounded
-                          : validation.type == 'another_day'
+                          : validation.closeReason == 'another_day'
                               ? Icons.calendar_today
                               : Icons.phone_android,
                       color: color,
@@ -429,7 +433,7 @@ class _AppPageState extends State<AppPage> {
 
                 // INFORMACIÓN ADICIONAL
                 Text(
-                  validation.type == 'forced'
+                  validation.closeReason == 'forced'
                       ? "Considera que CERRAR, terminará con la sesión actual."
                       : "Considera que CERRAR, terminará con la sesión actual y CONTINUAR, reanudará la sesión.",
                   style: TextStyle(fontSize: 14, color: Colors.black54),
@@ -460,141 +464,6 @@ class _AppPageState extends State<AppPage> {
                         onPressed: () => Navigator.pop(context, true),
                         child: const Text(
                           "Continuar",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    ).then((value) => value ?? false);
-  }
-
-  Future<bool> _after30MinutesDialog() {
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // HEADER
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Inactividad detectada",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: PuventColors.primaryGreen.color,
-                      ),
-                    ),
-                    Icon(
-                      Icons.phone_android,
-                      color: PuventColors.primaryGreen.color,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-                Divider(),
-
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text:
-                            "Hemos detectado que no has entrado a Puven por más de 30 minutos, por seguridad bloqueamos el Punto de Venta. ¿Deseas ",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      TextSpan(
-                        text: "CERRAR ",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Color.fromARGB(255, 226, 20, 20),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextSpan(
-                        text: "la caja o ",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      TextSpan(
-                        text: "CONTINUAR ",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: PuventColors.primaryGreen.color,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Divider(),
-
-                Text(
-                  "Considera que CERRAR, terminará con la sesión actual.",
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
-                  maxLines: 2,
-                  softWrap: true,
-                ),
-
-                Text(
-                  "Considera que CONTINUAR, reanudará la sesión actual.",
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
-                  maxLines: 2,
-                  softWrap: true,
-                ),
-
-                const SizedBox(height: 10),
-                Divider(),
-
-                // BOTONES
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () async {
-                          await CashService.closeCash(database);
-                          Navigator.pop(context, false);
-                        },
-                        child: const Text("Cerrar"),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: PuventColors.primaryGreen.color,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () async {
-                          Navigator.pop(context, true);
-                        },
-                        child: const Text(
-                          "Continuar ",
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
