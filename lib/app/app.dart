@@ -31,29 +31,34 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     // Detecta cuando la app se suspende o se cierra
-    if (state == AppLifecycleState.detached || state == AppLifecycleState.inactive) {
-      await CashService.markForcedClosure(database);
+    // if (state == AppLifecycleState.detached || state == AppLifecycleState.inactive) {
+    //   await CashService.markForcedClosure(database);
+    // }
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // La app vuelve al primer plano
+        debugPrint("App reanudada");
+        await CashService.notifyPendingSessionState(database);
+        break;
+
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+        //  App en segundo plano o vista de apps recientes
+        debugPrint("App en segundo plano, no marcar forced");
+        break;
+
+      case AppLifecycleState.detached:
+        // App realmente cerrada (proceso terminado)
+        if (await CashService.isOpen()) {
+          await CashService.markForcedClosure(database);
+          debugPrint("App cerrada completamente, marcado como forced");
+        }
+        break;
+      case AppLifecycleState.hidden:
+        // App oculta (en Android, cuando se muestra la vista de apps recientes)
+        debugPrint("App oculta, no marcar forced");
+        break;
     }
-  //   switch (state) {
-  //   case AppLifecycleState.resumed:
-  //     // La app vuelve al primer plano
-  //     debugPrint("App reanudada");
-  //     break;
-
-  //   case AppLifecycleState.inactive:
-  //   case AppLifecycleState.paused:
-  //     // 🔹 App en segundo plano o vista de apps recientes
-  //     debugPrint("App en segundo plano, no marcar forced");
-  //     break;
-
-  //   case AppLifecycleState.detached:
-  //     // 🔹 App realmente cerrada (proceso terminado)
-  //     if (await CashService.isOpen()) {
-  //       await CashService.markForcedClosure(database);
-  //       debugPrint("App cerrada completamente, marcado como forced");
-  //     }
-  //     break;
-  // }
   }
 
   @override

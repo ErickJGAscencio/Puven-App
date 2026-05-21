@@ -1,13 +1,14 @@
-import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:localix/data/database.dart';
+import 'package:localix/data/tables/cash_sesion.dart';
 import 'package:localix/features/home/presentation/home_page.dart';
 import 'package:localix/features/login/presentation/login_page.dart';
 import 'package:localix/features/my_products/presentation/my_products_page.dart';
 import 'package:localix/features/sales_history/presentation/sales_history_page.dart';
 import 'package:localix/features/stadistics/statistics_page.dart';
 import 'package:localix/helpers/cash_service.dart';
+import 'package:localix/helpers/cash_session_dialog.dart';
 import 'package:localix/widgets/app_drawer.dart';
 
 enum PuventColors {
@@ -53,12 +54,60 @@ class _AppPageState extends State<AppPage> {
   bool isCashOpen = false;
   bool isLoadingCash = true;
 
+  bool _pendingSessionDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
     database = widget.database;
+    CashService.pendingSessionNotifier.addListener(_pendingSessionListener);
 
     _loadCashSessionState();
+  }
+
+  @override
+  void dispose() {
+    CashService.pendingSessionNotifier.removeListener(_pendingSessionListener);
+    super.dispose();
+  }
+
+  void _pendingSessionListener() {
+    final validation = CashService.pendingSessionNotifier.value;
+    if (validation == null || _pendingSessionDialogOpen || !mounted) {
+      return;
+    }
+
+    _handlePendingSession(validation);
+  }
+
+  Future<void> _handlePendingSession(CashSessionValidation validation) async {
+    _pendingSessionDialogOpen = true;
+    final shouldContinue = await CashSessionDialog.showPendingSessionDialog(
+      context,
+      validation,
+    );
+    _pendingSessionDialogOpen = false;
+
+    if (!mounted) {
+      return;
+    }
+
+    if (shouldContinue) {
+      await CashService.updateLastInteraction(database);
+      await database.updateCashSessionType(
+        validation.cashSessionId,
+        CloseReason.none.name,
+      );
+      setState(() {
+        isCashOpen = true;
+      });
+      CashService.monitorCashSession(database);
+    } else {
+      await CashService.closeCash(database);
+      setState(() {
+        isCashOpen = false;
+      });
+    }
   }
 
   Future<void> _loadCashSessionState() async {
@@ -68,14 +117,17 @@ class _AppPageState extends State<AppPage> {
 
     if (validation != null && validation.hasPendingSession) {
       // Mostrar diálogo apropiado según el tipo de sesión pendiente
-      final shouldContinue = await _showPendingSessionDialog(validation);
+      final shouldContinue = await CashSessionDialog.showPendingSessionDialog(
+        context,
+        validation,
+      );
 
       if (shouldContinue) {
         // Actualizar la última interacción al reanudar
         await CashService.updateLastInteraction(database);
         await database.updateCashSessionType(
           validation.cashSessionId,
-          "none"
+          CloseReason.none.name,
         );
 
         setState(() {
@@ -365,120 +417,5 @@ class _AppPageState extends State<AppPage> {
     );
   }
 
-  Future<bool> _showPendingSessionDialog(CashSessionValidation validation) {
-    final titleMap = {
-      'forced': 'App se cerró inesperadamente',
-      'another_day': 'Caja abierta desde otro día',
-      'inactivity': 'Inactividad detectada',
-      'temporal': 'Sesión temporal pendiente',
-    };
-
-    final title = titleMap[validation.closeReason] ?? 'Sesión pendiente';
-    final color = validation.closeReason == 'forced' ? Colors.red : PuventColors.primaryGreen.color;
-
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // HEADER
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: color,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      validation.closeReason == 'forced'
-                          ? Icons.warning_rounded
-                          : validation.closeReason == 'another_day'
-                              ? Icons.calendar_today
-                              : Icons.phone_android,
-                      color: color,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 10),
-                Divider(),
-
-                const SizedBox(height: 10),
-
-                // MENSAJE
-                Text(
-                  validation.message,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 16),
-                  maxLines: 5,
-                  softWrap: true,
-                ),
-
-                const SizedBox(height: 10),
-                Divider(),
-
-                // INFORMACIÓN ADICIONAL
-                Text(
-                  validation.closeReason == 'forced'
-                      ? "Considera que CERRAR, terminará con la sesión actual."
-                      : "Considera que CERRAR, terminará con la sesión actual y CONTINUAR, reanudará la sesión.",
-                  style: TextStyle(fontSize: 14, color: Colors.black54),
-                  maxLines: 3,
-                  softWrap: true,
-                ),
-
-                const SizedBox(height: 20),
-
-                // BOTONES
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text("Cerrar Caja"),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: color,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text(
-                          "Continuar",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    ).then((value) => value ?? false);
-  }
 
 }
